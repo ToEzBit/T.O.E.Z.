@@ -22,10 +22,34 @@ export interface PushToTalkHandlers {
   readonly released: () => void
 }
 
-/** Right ⌘ (DESIGN). T11 makes this settable; until then it is the key. */
-const PUSH_TO_TALK_KEY = UiohookKey.MetaRight
+/** Right ⌘ (DESIGN). What T11's rebinding setting will change. */
+export const defaultPushToTalkKey = 'MetaRight'
+
+export interface PushToTalkOptions {
+  /**
+   * Which key to hold, by uiohook's name for it — `MetaRight` by default,
+   * `Ctrl`, `F13`, or a plain letter like `T`.
+   *
+   * Naming the key rather than numbering it is what a setting can store, and
+   * what a person can read back. `keyNames()` lists what is accepted.
+   */
+  readonly key?: string
+}
 
 export class PushToTalk {
+  readonly #keycode: number
+
+  constructor(options: PushToTalkOptions = {}) {
+    const name = options.key ?? defaultPushToTalkKey
+    const keycode = (UiohookKey as Record<string, number | undefined>)[name]
+    if (keycode === undefined) {
+      throw new Error(
+        `No key called ${name}. One of: ${keyNames().join(', ')}`,
+      )
+    }
+    this.#keycode = keycode
+  }
+
   /**
    * Starts watching, and hands back the way to stop. Nothing about any other
    * key leaves this object.
@@ -39,13 +63,13 @@ export class PushToTalk {
     let held = false
 
     const onKeydown = (event: { keycode: number }): void => {
-      if (event.keycode !== PUSH_TO_TALK_KEY || held) return
+      if (event.keycode !== this.#keycode || held) return
       held = true
       handlers.pressed()
     }
 
     const onKeyup = (event: { keycode: number }): void => {
-      if (event.keycode !== PUSH_TO_TALK_KEY || !held) return
+      if (event.keycode !== this.#keycode || !held) return
       held = false
       handlers.released()
     }
@@ -60,4 +84,9 @@ export class PushToTalk {
       uIOhook.stop()
     }
   }
+}
+
+/** Every key name `PushToTalk` will accept, in uiohook's spelling. */
+export function keyNames(): string[] {
+  return Object.keys(UiohookKey)
 }

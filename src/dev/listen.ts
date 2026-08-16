@@ -3,7 +3,10 @@ import { access } from 'node:fs/promises'
 import { assertNever } from '../core/assert-never.ts'
 import type { SessionEvent } from '../core/session/events.ts'
 import { SessionRuntime } from '../core/session/session-runtime.ts'
-import { PushToTalk } from '../providers/hotkey/push-to-talk.ts'
+import {
+  defaultPushToTalkKey,
+  PushToTalk,
+} from '../providers/hotkey/push-to-talk.ts'
 import {
   defaultModelPath,
   defaultVadModelPath,
@@ -13,21 +16,24 @@ import { MuteEngine } from './mute-engine.ts'
 import { MuteVoice } from './mute-voice.ts'
 
 /**
- * T.O.E.Z.'s ears, on their own. Hold Right ⌘, speak Thai or English or both,
- * release, and read what it heard. Nothing answers: the Engine and the Voice
- * are stand-ins, because the only question this surface exists to ask is
- * whether it heard the Owner right.
+ * T.O.E.Z.'s ears, on their own. Hold the push-to-talk key, speak Thai or
+ * English or both, release, and read what it heard. Nothing answers: the Engine
+ * and the Voice are stand-ins, because the only question this surface exists to
+ * ask is whether it heard the Owner right.
  *
- * `pnpm listen`. Ctrl-C ends it.
+ * `pnpm listen`. Ctrl-C ends it. `TOEZ_KEY` tries a different key, which is how
+ * a key that never reports being let go gets told apart from a hook that is not
+ * running at all.
  *
  * Setup — ffmpeg, whisper-cli, the models, and the two macOS permissions — is
  * docs/ears.md.
  */
 
-// Two knobs, because which of them the Owner's own voice prefers is exactly
-// what this surface is for finding out. Settings proper arrive in T11.
+// Three knobs, because which of them the Owner's own voice and hands prefer is
+// exactly what this surface is for finding out. Settings proper arrive in T11.
 const modelPath = process.env.TOEZ_MODEL ?? defaultModelPath
 const language = process.env.TOEZ_LANGUAGE ?? 'auto'
+const key = process.env.TOEZ_KEY ?? defaultPushToTalkKey
 
 // A missing model otherwise surfaces as a whisper-cli failure three quarters of
 // the way through the Owner's first sentence.
@@ -106,7 +112,9 @@ function dispatch(event: SessionEvent): void {
   })
 }
 
-const stopListening = new PushToTalk().listen({
+const pushToTalk = new PushToTalk({ key })
+
+const stopListening = pushToTalk.listen({
   pressed: () => {
     listeningAt = undefined
     dispatch({ type: 'hotkey-pressed' })
@@ -130,8 +138,9 @@ process.on('SIGINT', () => {
 process.stdout.write(
   `T.O.E.Z. — ears only\n` +
     `Model    ${modelPath}\n` +
-    `Language ${language}\n\n` +
-    `Hold Right ⌘, speak, release. Ctrl-C to stop.\n` +
+    `Language ${language}\n` +
+    `Key      ${key}\n\n` +
+    `Hold the key, speak, release. Ctrl-C to stop.\n` +
     `Nothing happening? macOS needs this terminal ticked under\n` +
     `System Settings › Privacy & Security › Accessibility.\n`,
 )

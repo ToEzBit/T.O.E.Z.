@@ -10,6 +10,11 @@ import type { SpeakRequest } from '../ports/voice.ts'
  *
  * Later tickets widen this union — permission prompts, Memory writes,
  * Transcript appends, Panel updates, Subagent announcements all arrive here.
+ *
+ * Two widenings are already known to be coming, and are deliberately absent
+ * until a ticket asks for them: T4 speaks sentence by sentence as the reply
+ * streams, rather than once at the end as `speak` does here; and T5 needs a
+ * way to cut speech off mid-sentence when the Owner keys in over it.
  */
 export type SessionEffect =
   /** Open the microphone; the Owner is holding the key. */

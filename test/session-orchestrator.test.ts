@@ -22,18 +22,18 @@ describe('the Session orchestrator', () => {
     const effects = recordEffects(session)
 
     await session.dispatch({ type: 'hotkey-pressed' })
-    expect(transcriber.capturing).toBe(true)
-
     await session.dispatch({ type: 'hotkey-released' })
-    expect(transcriber.capturing).toBe(false)
 
     expect(effects).toEqual<SessionEffect[]>([
       { type: 'start-capture' },
       { type: 'stop-capture' },
-      { type: 'send-to-engine', request: { utterance: 'ทดสอบหน่อย' } },
+      { type: 'send-to-engine', request: { utterance: { text: 'ทดสอบหน่อย' } } },
       { type: 'speak', request: { text: 'สวัสดีครับ เจ้านาย' } },
     ])
-    expect(engine.requests).toEqual([{ utterance: 'ทดสอบหน่อย' }])
+
+    // The list above is what the Session decided; these are what actually
+    // reached the providers.
+    expect(engine.requests).toEqual([{ utterance: { text: 'ทดสอบหน่อย' } }])
     expect(voice.spoken).toEqual([{ text: 'สวัสดีครับ เจ้านาย' }])
   })
 
@@ -49,8 +49,8 @@ describe('the Session orchestrator', () => {
     await session.dispatch({ type: 'hotkey-released' })
 
     expect(engine.requests).toEqual([
-      { utterance: 'Hello' },
-      { utterance: 'What time is it?' },
+      { utterance: { text: 'Hello' } },
+      { utterance: { text: 'What time is it?' } },
     ])
     expect(voice.spoken).toEqual([
       { text: 'Good evening.' },

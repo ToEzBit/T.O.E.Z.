@@ -21,7 +21,7 @@ TypeScript is pinned to 5.9 because typescript-eslint caps at `<6.1.0`.
 ## Layout
 
 - `src/core/` — no Electron imports, ever. The Session orchestrator and the port interfaces live here, so they run under plain Node in tests.
-  - `ports/` — the three ADR-mandated interfaces: Engine, Transcriber, Voice provider.
+  - `ports/` — the three interfaces the spec fixes as fakeable seams: Engine, Transcriber, Voice provider. ADR-0002 requires the Engine keep its own boundary; ADR-0003 makes the Voice provider interface mandatory.
   - `session/` — `orchestrator.ts` is pure (`state + event → state + effects`); `session-runtime.ts` runs those effects against the ports and feeds results back as events.
   - `testing/` — one fake per port, used by the tests.
 - `src/main/` — the Electron main process: menu bar presence and, later, the Panel.

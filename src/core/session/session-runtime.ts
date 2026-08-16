@@ -1,9 +1,10 @@
+import { assertNever } from '../assert-never.ts'
 import type { Engine } from '../ports/engine.ts'
 import type { Transcriber } from '../ports/transcriber.ts'
 import type { VoiceProvider } from '../ports/voice.ts'
 import type { SessionEffect } from './effects.ts'
 import type { SessionEvent } from './events.ts'
-import { handle, initialSessionState, type SessionState } from './orchestrator.ts'
+import { handle, idleSessionState, type SessionState } from './orchestrator.ts'
 
 /**
  * The runtime carries out what the orchestrator decides: it runs each effect
@@ -22,14 +23,10 @@ export type EffectListener = (effect: SessionEffect) => void
 export class SessionRuntime {
   readonly #ports: SessionPorts
   readonly #listeners = new Set<EffectListener>()
-  #state: SessionState = initialSessionState
+  #state: SessionState = idleSessionState
 
   constructor(ports: SessionPorts) {
     this.#ports = ports
-  }
-
-  get state(): SessionState {
-    return this.#state
   }
 
   /**
@@ -81,11 +78,7 @@ export class SessionRuntime {
         return
 
       default:
-        assertNever(effect)
+        assertNever(effect, 'SessionEffect')
     }
   }
-}
-
-function assertNever(effect: never): never {
-  throw new Error(`Unhandled SessionEffect: ${JSON.stringify(effect)}`)
 }

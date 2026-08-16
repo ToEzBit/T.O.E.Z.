@@ -1,3 +1,5 @@
+import type { Utterance } from '../utterance.ts'
+
 /**
  * The Engine is T.O.E.Z.'s brain: the Claude Agent SDK running on the Owner's
  * subscription (ADR-0002). It stays behind this interface so that swapping to
@@ -7,8 +9,7 @@
 
 /** One turn of the Session handed to the Engine. */
 export interface EngineRequest {
-  /** What the Owner said, as text. */
-  readonly utterance: string
+  readonly utterance: Utterance
 }
 
 /** One incremental piece of a reply, as it streams back. */

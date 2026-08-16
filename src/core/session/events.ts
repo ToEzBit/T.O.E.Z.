@@ -1,5 +1,5 @@
 import type { ReplyChunk } from '../ports/engine.ts'
-import type { Utterance } from '../ports/transcriber.ts'
+import type { Utterance } from '../utterance.ts'
 
 /**
  * Everything that can happen *to* a Session. The orchestrator only ever learns

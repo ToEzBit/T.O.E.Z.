@@ -1,23 +1,20 @@
-import type { Transcriber, Utterance } from '../ports/transcriber.ts'
+import type { Transcriber } from '../ports/transcriber.ts'
+import type { Utterance } from '../utterance.ts'
+import { Script } from './script.ts'
 
 /**
  * A fake Transcriber that hands back canned Utterances instead of listening to
  * a microphone — one per push-to-talk turn, in order.
  *
- * `capturing` is exposed so tests can prove capture is gated by the key rather
- * than running loose.
+ * It refuses to capture out of pairs, so a Session that opens the microphone
+ * without closing it fails here rather than quietly running the mic loose.
  */
 export class CannedTranscriber implements Transcriber {
+  readonly #canned: Script<string>
   #capturing = false
-  readonly #canned: readonly string[]
-  #turn = 0
 
   constructor(canned: readonly string[]) {
-    this.#canned = canned
-  }
-
-  get capturing(): boolean {
-    return this.#capturing
+    this.#canned = new Script('canned Utterances', canned)
   }
 
   startCapture(): Promise<void> {
@@ -33,14 +30,6 @@ export class CannedTranscriber implements Transcriber {
       throw new Error('CannedTranscriber was asked to stop without capturing.')
     }
     this.#capturing = false
-    const text = this.#canned[this.#turn]
-    if (text === undefined) {
-      throw new Error(
-        `CannedTranscriber ran out of Utterances: asked for turn ${String(this.#turn + 1)}, ` +
-          `only ${String(this.#canned.length)} canned.`,
-      )
-    }
-    this.#turn += 1
-    return Promise.resolve({ text })
+    return Promise.resolve({ text: this.#canned.next() })
   }
 }

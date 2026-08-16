@@ -51,3 +51,7 @@ _Avoid_: folder, path, repo
 **Transcript**:
 The full permanent record of one Session, kept so past conversations can be searched later.
 _Avoid_: log, chat history
+
+**Utterance**:
+One thing the Owner said in a single push-to-talk turn, as text — what the Transcriber hands back when the key is released. A Session is made of many; a Transcript records them all.
+_Avoid_: transcript (that is the whole Session's record), input, prompt, query

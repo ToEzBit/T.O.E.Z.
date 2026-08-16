@@ -1,3 +1,4 @@
+import { assertNever } from '../assert-never.ts'
 import type { SessionEffect } from './effects.ts'
 import type { SessionEvent } from './events.ts'
 
@@ -29,7 +30,11 @@ export interface SessionState {
   readonly reply: string
 }
 
-export const initialSessionState: SessionState = { phase: 'idle', reply: '' }
+/**
+ * Where a Session rests between turns — and so also where it starts. A Session
+ * spans the whole conversation; it passes back through here after every reply.
+ */
+export const idleSessionState: SessionState = { phase: 'idle', reply: '' }
 
 export interface SessionStep {
   readonly state: SessionState
@@ -62,7 +67,7 @@ export function handle(state: SessionState, event: SessionEvent): SessionStep {
       return {
         state,
         effects: [
-          { type: 'send-to-engine', request: { utterance: event.utterance.text } },
+          { type: 'send-to-engine', request: { utterance: event.utterance } },
         ],
       }
 
@@ -82,17 +87,13 @@ export function handle(state: SessionState, event: SessionEvent): SessionStep {
 
     case 'speech-finished':
       if (state.phase !== 'speaking') return unchanged(state)
-      return { state: initialSessionState, effects: [] }
+      return { state: idleSessionState, effects: [] }
 
     default:
-      return assertNever(event)
+      return assertNever(event, 'SessionEvent')
   }
 }
 
 function unchanged(state: SessionState): SessionStep {
   return { state, effects: [] }
-}
-
-function assertNever(event: never): never {
-  throw new Error(`Unhandled SessionEvent: ${JSON.stringify(event)}`)
 }

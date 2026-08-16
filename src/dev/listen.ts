@@ -21,9 +21,14 @@ import { MuteVoice } from './mute-voice.ts'
  * and the Voice are stand-ins, because the only question this surface exists to
  * ask is whether it heard the Owner right.
  *
- * `pnpm listen`. Ctrl-C ends it. `TOEZ_KEY` tries a different key, which is how
- * a key that never reports being let go gets told apart from a hook that is not
- * running at all.
+ * `pnpm listen`. Ctrl-C ends it. `TOEZ_KEY` tries a different key.
+ *
+ * Run by Electron rather than by Node, which `pnpm ask` uses — not for anything
+ * Electron provides, but for the Node inside it. The keyboard hook delivers one
+ * event on Node 26 and then goes deaf; on Electron's Node 24 it keeps working.
+ * Electron strips the types itself, so there is still no bundler in the way.
+ * That also means macOS asks for the microphone and for Accessibility on
+ * Electron's behalf, not the terminal's.
  *
  * Setup — ffmpeg, whisper-cli, the models, and the two macOS permissions — is
  * docs/ears.md.
@@ -141,8 +146,8 @@ process.stdout.write(
     `Language ${language}\n` +
     `Key      ${key}\n\n` +
     `Hold the key, speak, release. Ctrl-C to stop.\n` +
-    `Nothing happening? macOS needs this terminal ticked under\n` +
-    `System Settings › Privacy & Security › Accessibility.\n`,
+    `Nothing happening? macOS needs Electron — not the terminal — ticked under\n` +
+    `System Settings › Privacy & Security › Accessibility. See docs/ears.md.\n`,
 )
 
 /** How long since `from` — or 'never', when that moment never came. */

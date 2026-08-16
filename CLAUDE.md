@@ -22,11 +22,19 @@ Three things are not npm's to install: `ffmpeg` and `whisper-cpp`, from Homebrew
 
 TypeScript is pinned to 5.9 because typescript-eslint caps at `<6.1.0`.
 
-`pnpm ask` and `pnpm listen` run `src/dev/` straight through Node, which strips
-the types itself — no bundler in the way, so the Engine and the ears can be
-exercised without starting Electron. The `--disable-warning` flag on them only
-silences Node's note that this package has no `"type": "module"`; adding one
-would change how `out/main` is loaded, which is Electron's business.
+`pnpm ask` runs `src/dev/ask.ts` straight through Node, which strips the types
+itself — no bundler in the way, so the Engine can be exercised without starting
+Electron. The `--disable-warning` flag on it only silences Node's note that this
+package has no `"type": "module"`; adding one would change how `out/main` is
+loaded, which is Electron's business.
+
+`pnpm listen` is the same idea run by Electron instead, and not for anything
+Electron provides. `uiohook-napi`'s event tap delivers one event on Node 26 and
+then goes deaf — key-down arrives, key-up never does — while on Electron's own
+Node 24 it runs indefinitely. Electron strips the types too, so no bundler
+enters here either. The consequence to remember is that macOS grants the
+microphone and Accessibility to *Electron* under `pnpm listen`, not to the
+terminal; docs/ears.md says which file to tick.
 
 `pnpm ask` talks to the real Engine on the Owner's subscription, so it spends
 real tokens. So does `pnpm test:integration`, which needs `claude login` to have

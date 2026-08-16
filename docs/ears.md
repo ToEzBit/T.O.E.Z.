@@ -22,11 +22,32 @@ the code's: reinstalling the app should not mean downloading them again.
 dialog. If it was refused, `pnpm listen` says the microphone never opened.
 
 **Accessibility**, for the whole point of push-to-talk: hearing Right ⌘ while
-the Owner is working in some other app. System Settings › Privacy & Security ›
-Accessibility, and tick whatever is running T.O.E.Z. — under `pnpm listen` that
-is the terminal, not Node.
+the Owner is working in some other app. There is no error when this one is
+missing — the key is simply never heard.
 
-There is no error when this one is missing. The key is simply never heard.
+macOS grants both to the *application*, and under `pnpm listen` that is
+Electron, not the terminal. So drag this into System Settings › Privacy &
+Security › Accessibility and tick it:
+
+```
+node_modules/.pnpm/electron@<version>/node_modules/electron/dist/Electron.app
+```
+
+`open node_modules/.pnpm/electron@*/node_modules/electron/dist/` puts it in a
+Finder window to drag from. Ticking the terminal does nothing, because the
+terminal is not the process listening.
+
+## Why Electron runs the ears
+
+`pnpm ask` runs on Node; `pnpm listen` runs on Electron, and not for anything
+Electron provides. The keyboard hook is a native module whose event tap
+delivers exactly one event on Node 26 and then goes deaf — key-down arrives,
+key-up never does, and a held key is never let go. On Electron's own Node 24 it
+runs indefinitely. Measured both ways with synthesised keystrokes before
+changing anything.
+
+Electron strips the TypeScript itself, so there is still no bundler in the way,
+and this is the runtime the app ships on anyway.
 
 ## Listening
 

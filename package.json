@@ -1,0 +1,34 @@
+{
+  "name": "toez",
+  "version": "0.0.0",
+  "description": "T.O.E.Z. — personal Jarvis-style voice agent for macOS",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration --passWithNoTests"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.2.0",
+    "electron": "^43.4.0",
+    "electron-vite": "^5.0.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.67.0",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

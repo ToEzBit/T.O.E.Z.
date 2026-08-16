@@ -1,4 +1,4 @@
-import type { EngineRequest } from '../ports/engine.ts'
+import type { EngineRequest, ReplyChunk } from '../ports/engine.ts'
 import type { SpeakRequest } from '../ports/voice.ts'
 
 /**
@@ -23,5 +23,12 @@ export type SessionEffect =
   | { readonly type: 'stop-capture' }
   /** Hand the Owner's utterance to the Engine. */
   | { readonly type: 'send-to-engine'; readonly request: EngineRequest }
+  /**
+   * Put one more piece of the reply on screen. Carries only the new text: the
+   * Session already keeps the reply so far, so repeating it here would be two
+   * copies of one fact. Nothing runs this yet — the Panel arrives in T6, and
+   * until then the effect log is the only place a reply is watched.
+   */
+  | { readonly type: 'show-reply-chunk'; readonly chunk: ReplyChunk }
   /** Say this aloud. */
   | { readonly type: 'speak'; readonly request: SpeakRequest }

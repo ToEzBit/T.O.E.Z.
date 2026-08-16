@@ -64,6 +64,11 @@ export class SessionRuntime {
         return
       }
 
+      case 'show-reply-chunk':
+        // Nothing to run: the listeners above have already seen it, and that is
+        // the whole of showing a reply until the Panel exists (T6).
+        return
+
       case 'send-to-engine': {
         for await (const chunk of this.#ports.engine.reply(effect.request)) {
           await this.dispatch({ type: 'reply-chunk-received', chunk })

@@ -75,7 +75,7 @@ export function handle(state: SessionState, event: SessionEvent): SessionStep {
       if (state.phase !== 'thinking') return unchanged(state)
       return {
         state: { ...state, reply: state.reply + event.chunk.text },
-        effects: [],
+        effects: [{ type: 'show-reply-chunk', chunk: event.chunk }],
       }
 
     case 'reply-completed':

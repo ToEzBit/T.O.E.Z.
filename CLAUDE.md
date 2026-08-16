@@ -8,6 +8,7 @@ Package manager is **pnpm**. esbuild needs its install script, which pnpm gates 
 
 | Command                | Does                                                             |
 | ---------------------- | ---------------------------------------------------------------- |
+| `pnpm ask`             | One real Session from the keyboard — see below                    |
 | `pnpm dev`             | Runs the app with reload                                          |
 | `pnpm build`           | Bundles the main process into `out/`                              |
 | `pnpm start`           | Runs the built bundle                                             |
@@ -18,18 +19,33 @@ Package manager is **pnpm**. esbuild needs its install script, which pnpm gates 
 
 TypeScript is pinned to 5.9 because typescript-eslint caps at `<6.1.0`.
 
+`pnpm ask` runs `src/dev/ask.ts` straight through Node, which strips the types
+itself — no bundler in the way, so the Engine can be exercised without starting
+Electron. The `--disable-warning` flag on it only silences Node's note that this
+package has no `"type": "module"`; adding one would change how `out/main` is
+loaded, which is Electron's business.
+
+It talks to the real Engine on the Owner's subscription, so it spends real
+tokens. So does `pnpm test:integration`, which needs `claude login` to have
+happened. `pnpm test` never does.
+
 ## Layout
 
 - `src/core/` — no Electron imports, ever. The Session orchestrator and the port interfaces live here, so they run under plain Node in tests.
   - `ports/` — the three interfaces the spec fixes as fakeable seams: Engine, Transcriber, Voice provider. ADR-0002 requires the Engine keep its own boundary; ADR-0003 makes the Voice provider interface mandatory.
   - `session/` — `orchestrator.ts` is pure (`state + event → state + effects`); `session-runtime.ts` runs those effects against the ports and feeds results back as events.
+  - `workspace/` — `~/.toez`: the Persona now, Memory and Transcripts later. Opening it creates it, so first run needs no setup.
   - `testing/` — one fake per port, used by the tests.
+- `src/providers/` — the real things behind the ports. Node, not Electron, so they run under `pnpm ask` and the integration tests. `engine/` holds the Agent SDK Engine, which ADR-0002 requires stay behind its own boundary.
+- `src/dev/` — the keyboard-driven Session and the stand-ins it needs. Not shipped; deleted once there are real ears and a real mouth.
 - `src/main/` — the Electron main process: menu bar presence and, later, the Panel.
 - `resources/` — menu bar icons. macOS template images: black plus alpha only, `@2x` alongside.
 
 ## Testing
 
 One seam: the Session orchestrator. Tests feed it events and assert the effects that come out — never internal state, never provider internals. New behaviour means a new event or effect variant, not a new mock. See `test/session-orchestrator.test.ts` for the pattern.
+
+Three other files are in the fast suite, and none of them mocks anything: `workspace.test.ts` drives the real Workspace against a temp directory, and `subscription-auth.test.ts` checks a promise ADR-0002 makes about the whole repository rather than about any one module. What a provider actually does belongs in `*.integration.test.ts`, against the real provider — a fake Engine can only prove what it was told to say.
 
 ## Agent skills
 

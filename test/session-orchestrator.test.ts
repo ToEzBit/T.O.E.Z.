@@ -28,6 +28,8 @@ describe('the Session orchestrator', () => {
       { type: 'start-capture' },
       { type: 'stop-capture' },
       { type: 'send-to-engine', request: { utterance: { text: 'ทดสอบหน่อย' } } },
+      { type: 'show-reply-chunk', chunk: { text: 'สวัสดี' } },
+      { type: 'show-reply-chunk', chunk: { text: 'ครับ เจ้านาย' } },
       { type: 'speak', request: { text: 'สวัสดีครับ เจ้านาย' } },
     ])
 
@@ -35,6 +37,32 @@ describe('the Session orchestrator', () => {
     // reached the providers.
     expect(engine.requests).toEqual([{ utterance: { text: 'ทดสอบหน่อย' } }])
     expect(voice.spoken).toEqual([{ text: 'สวัสดีครับ เจ้านาย' }])
+  })
+
+  it('shows each piece of the reply as it arrives, before speaking any of it', async () => {
+    const engine = new ScriptedEngine([['Good ', 'evening, ', 'เจ้านาย']])
+    const transcriber = new CannedTranscriber(['Hello'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    // A reply arriving in one piece would still speak correctly; what the Panel
+    // needs — and what T4 will speak from — is the pieces, in order.
+    expect(effects.filter((effect) => effect.type === 'show-reply-chunk')).toEqual<
+      SessionEffect[]
+    >([
+      { type: 'show-reply-chunk', chunk: { text: 'Good ' } },
+      { type: 'show-reply-chunk', chunk: { text: 'evening, ' } },
+      { type: 'show-reply-chunk', chunk: { text: 'เจ้านาย' } },
+    ])
+    expect(effects.at(-1)).toEqual<SessionEffect>({
+      type: 'speak',
+      request: { text: 'Good evening, เจ้านาย' },
+    })
   })
 
   it('carries on into a second turn once it has finished speaking', async () => {

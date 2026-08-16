@@ -32,6 +32,18 @@ describe('subscription auth', () => {
     expect(parent.ANTHROPIC_API_KEY).toBe('sk-ant-nope')
   })
 
+  it('strips them from this machine too, whatever is exported here', () => {
+    // The one above proves the rule; this proves it against the environment the
+    // Engine will actually hand over. Asserting that the ambient environment is
+    // clean would be the wrong test: a machine with a key exported for some
+    // other project is exactly the case this is meant to survive, not fail on.
+    const handedOver = subscriptionOnlyEnv()
+
+    expect(handedOver.ANTHROPIC_API_KEY).toBeUndefined()
+    expect(handedOver.ANTHROPIC_AUTH_TOKEN).toBeUndefined()
+    expect(Object.keys(handedOver).length).toBeGreaterThan(0)
+  })
+
   it('has no API key anywhere in the project', async () => {
     const offenders: string[] = []
 
@@ -56,7 +68,7 @@ describe('subscription auth', () => {
 })
 
 const REPO = fileURLToPath(new URL('..', import.meta.url))
-const NOT_OURS = new Set(['node_modules', '.git', 'out', 'dist'])
+const NOT_OURS = new Set(['node_modules', '.git', 'out', 'dist', 'coverage', '.vite'])
 
 /** Every file this repository owns, so nothing can hide a key in a corner. */
 async function* projectFiles(directory: string = REPO): AsyncIterable<string> {

@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline/promises'
 
+import { assertNever } from '../core/assert-never.ts'
 import { SessionRuntime } from '../core/session/session-runtime.ts'
 import { openWorkspace } from '../core/workspace/workspace.ts'
 import { ClaudeAgentSdkEngine } from '../providers/engine/claude-agent-sdk-engine.ts'
@@ -32,30 +33,37 @@ const session = new SessionRuntime({
 // Two numbers worth watching: how long the Owner waits before hearing anything
 // at all, and how long the whole turn took. The first is the one that decides
 // whether this feels like a conversation.
-let askedAt = 0
-let firstChunkAt = 0
+let askedAt: number | undefined
+let firstChunkAt: number | undefined
 
 session.onEffect((effect) => {
   switch (effect.type) {
     case 'send-to-engine':
       askedAt = performance.now()
-      firstChunkAt = 0
+      firstChunkAt = undefined
       process.stdout.write('\nT.O.E.Z. › ')
       break
 
     case 'show-reply-chunk':
-      firstChunkAt ||= performance.now()
+      firstChunkAt ??= performance.now()
       process.stdout.write(effect.chunk.text)
       break
 
     case 'speak':
       process.stdout.write(
-        `\n   ⏱ first word ${since(askedAt, firstChunkAt)}, whole turn ${since(askedAt, performance.now())}\n`,
+        `\n   ⏱ first word ${took(askedAt, firstChunkAt)}, ` +
+          `whole turn ${took(askedAt, performance.now())}\n`,
       )
       break
 
-    default:
+    case 'start-capture':
+    case 'stop-capture':
+      // The prompt the TypedTranscriber writes is the whole of the microphone
+      // opening and closing here.
       break
+
+    default:
+      assertNever(effect, 'SessionEffect')
   }
 })
 
@@ -76,7 +84,8 @@ for (;;) {
   }
 }
 
-function since(from: number, to: number): string {
-  if (to === 0) return 'never'
-  return `${(to - from).toFixed(0)}ms`
+/** How long from asking to `at` — or 'never', when that moment never came. */
+function took(askedAt: number | undefined, at: number | undefined): string {
+  if (askedAt === undefined || at === undefined) return 'never'
+  return `${(at - askedAt).toFixed(0)}ms`
 }

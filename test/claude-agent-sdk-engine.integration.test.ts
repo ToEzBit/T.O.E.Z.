@@ -58,29 +58,45 @@ describe('the Claude Agent SDK Engine', () => {
 
       // The second turn knows what the first one was told, which is the whole
       // of a Session being a conversation rather than a series of questions.
-      expect(remembered.join('')).toContain('41')
+      // Spelled or in digits: a Persona written to be heard says "forty-one"
+      // about as readily as "41", and either one proves it remembered.
+      expect(remembered.join('')).toMatch(/41|forty[\s-]?one|สี่สิบเอ็ด/i)
     },
   )
 
   it('answers an English Owner in English', { timeout: 240_000 }, async () => {
-    // A Session of its own. Asked as a follow-up inside the Thai Session above,
-    // this comes back in Thai about as often as in English: what the Engine has
-    // been speaking so far outweighs the Persona's language rule. A Session
-    // opened in English stays in English, which is what the design asks for.
+    // A Session of its own, because switching language *within* one is a
+    // separate and much shakier thing: asked as a follow-up inside the Thai
+    // Session above, this comes back in Thai roughly as often as in English —
+    // what the Engine has been speaking outweighs the Persona's language rule.
+    // Wording the rule harder made it worse, not better: the reply then opened
+    // in Thai, caught itself, apologised and switched mid-sentence. Left as it
+    // is, deliberately; the design asks that a Session be answered in the
+    // language it was opened in, and that holds.
     const engine = new ClaudeAgentSdkEngine(workspace)
 
     const reply = await collect(
       engine.reply({ utterance: { text: 'Good evening. Who are you?' } }),
     )
 
-    // เจ้านาย is how the Owner is addressed in either language, so it is not
-    // evidence of a Thai reply; anything else in Thai script is.
-    expect(reply.join('').replaceAll('เจ้านาย', '')).not.toMatch(THAI)
+    expect(setAside(reply)).not.toMatch(THAI)
   })
 })
 
 /** Any Thai character. */
 const THAI = /[฀-๿]/
+
+/**
+ * How the Owner is addressed and how politeness is marked. T.O.E.Z. says these
+ * in English sentences too — "Forty-one, ครับ" is an English answer with a Thai
+ * courtesy on the end, not a Thai answer — so they are set aside before asking
+ * which language a reply is in. Anything else in Thai script still counts.
+ */
+const THAI_COURTESY = /เจ้านาย|ครับ|ค่ะ|คะ|ครับผม/g
+
+function setAside(chunks: readonly string[]): string {
+  return chunks.join('').replace(THAI_COURTESY, '')
+}
 
 async function collect(chunks: AsyncIterable<ReplyChunk>): Promise<string[]> {
   const texts: string[] = []

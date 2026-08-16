@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Node / Electron
+node_modules/
+dist/
+out/
+*.log
+
+# Secrets — MiniMax key etc. live in env files, never in git
+.env
+.env.*
+
+# Local scratch / ticket workspace
+.scratch/

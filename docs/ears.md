@@ -8,18 +8,13 @@ Everything here is on this machine. No audio leaves it, at any point (ADR-0003).
 
 ```sh
 brew install ffmpeg whisper-cpp
-./scripts/build-thonburian-model.sh
+./scripts/fetch-ears-models.sh
 ```
 
-The script converts Thonburian Whisper — a Thai fine-tune of Whisper — into the
-ggml format whisper.cpp reads, quantizes it, and puts it in `~/.toez/models`
-alongside the Silero voice activity model. It wants PyTorch and about 6GB of
-scratch space for the conversion, and throws both away afterwards. Expect it to
-take a while. Run it again any time; it skips what is already built.
-
-Models live in the Workspace rather than in this repo because they are
-T.O.E.Z.'s, not the code's: reinstalling the app should not mean downloading
-them again.
+That fetches Whisper large-v3-turbo and the Silero voice activity model — about
+575MB, already in ggml format, nothing to build — into `~/.toez/models`. Models
+live in the Workspace rather than in this repo because they are T.O.E.Z.'s, not
+the code's: reinstalling the app should not mean downloading them again.
 
 ## Two permissions macOS will not give you quietly
 
@@ -40,20 +35,39 @@ pnpm listen
 ```
 
 Hold Right ⌘, speak Thai or English or both, release. T.O.E.Z. shows what it
-heard and repeats it back — the Engine is a stand-in here, because the only
-question this surface answers is whether the transcript is right.
+heard, and nothing answers: the Engine and the Voice are stand-ins here, because
+the only question this surface asks is whether the transcript is right.
 
 Two knobs, for finding out what the Owner's own voice prefers:
 
 | Variable        | Default             | For                                        |
 | --------------- | ------------------- | ------------------------------------------ |
-| `TOEZ_MODEL`    | the Thonburian one  | Trying another ggml model                  |
+| `TOEZ_MODEL`    | large-v3-turbo      | Comparing another ggml model                |
 | `TOEZ_LANGUAGE` | `auto`              | Pinning to `th` or `en` instead of guessing |
 
 `auto` lets Whisper decide per utterance, which is the honest default for an
 Owner who mixes languages. Each line reports what it decided, so a run of
-`pnpm listen` is evidence rather than a feeling. If Thai-with-English-in-it
-keeps coming back as English, `TOEZ_LANGUAGE=th` is the answer.
+`pnpm listen` is evidence rather than a feeling.
+
+## Which model
+
+Not settled, and the Owner is the one who settles it. **ADR-0004 is the
+measurement**: Thai fine-tunes are exact on Thai and produce fluent nonsense on
+English, so the default is plain multilingual Whisper instead of the Thonburian
+model ADR-0003 named.
+
+What that leaves open is whether Thonburian's better Thai is worth its total
+loss of English. To hear the difference:
+
+```sh
+./scripts/build-thonburian-model.sh            # ~30 min, wants PyTorch
+TOEZ_MODEL=~/.toez/models/ggml-whisper-th-medium-combined-q5_0.bin pnpm listen
+```
+
+Speak the same handful of sentences to each — some Thai, some English, some with
+an English word in the middle of a Thai sentence — and keep whichever is right
+more often. They can sit side by side in `~/.toez/models`; nothing has to be
+deleted to try the other.
 
 ## What to expect
 
@@ -63,13 +77,17 @@ waits for the device and *then* prints `🎙 ฟังอยู่ครับ` 
 keypress, is the cue to speak. Anything that shows the Owner they are being
 heard has to wait for the same moment.
 
+**Two to three seconds to transcribe** a sentence, on an M1 Pro. Whisper reads
+the whole recording once the key is released; nothing is transcribed while the
+Owner is still talking.
+
 **A tap costs nothing.** Right ⌘ is a key the Owner presses for other reasons.
 Voice activity detection finds no speech, the utterance comes back empty, and
 the Session goes straight back to idle without waking the Engine. Without that
 detection Whisper would invent a word — asked to transcribe silence, it answers
 "you".
 
-**Thai is harder than English.** That is the risk this whole setup exists to
-retire, and the only test that counts is the Owner's own voice on
-`pnpm listen`. `pnpm test:integration` checks the wiring against macOS's own
-voices, which is a much easier thing to hear.
+**The Owner's voice is the only test that counts.**
+`pnpm test:integration` puts macOS's own voices through the real whisper.cpp,
+which holds the wiring honest. Synthetic speech is far easier to hear than a
+person, and it says nothing about how a Thai speaker's English lands.

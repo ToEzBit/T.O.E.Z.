@@ -1,38 +1,42 @@
 #!/usr/bin/env bash
 #
-# Builds T.O.E.Z.'s ears: Thonburian Whisper, distilled and quantized, in the
-# ggml format whisper.cpp reads (ADR-0003). Also fetches the Silero voice
-# activity model, without which Whisper invents words out of silence.
+# Builds a Thai Whisper fine-tune into the ggml format whisper.cpp reads, and
+# quantizes it.
 #
-# Run once. Everything lands in ~/.toez/models, which is the Workspace, so it
-# survives reinstalling the app. Takes a while and wants ~6GB of scratch space:
-# the conversion needs PyTorch, and the model is a gigabyte before it is
-# quantized. Both are thrown away at the end.
+#   ./scripts/build-thonburian-model.sh [huggingface-model]
 #
-# See docs/ears.md.
+# Not what the ears run by default. These models are exact on Thai and useless
+# on English (ADR-0004), so this exists for one purpose: letting the Owner hear
+# the Thai difference on their own voice before that trade is settled. The
+# built file is named after the model it came from, so several can sit side by
+# side in ~/.toez/models for `TOEZ_MODEL` to choose between.
+#
+# For the models T.O.E.Z. actually listens with, run
+# scripts/fetch-ears-models.sh — no build, no Python.
+#
+# Everything lands in ~/.toez/models, which is the Workspace, so it survives
+# reinstalling the app. Takes a while and wants ~10GB of scratch space: the
+# conversion needs PyTorch, and the weights are gigabytes before quantizing.
+# Both are thrown away at the end.
 
 set -euo pipefail
 
+HF_MODEL="${1:-biodatlab/whisper-th-medium-combined}"
+MODEL_NAME="ggml-${HF_MODEL##*/}"
+QUANTIZATION='q5_0'
+
 MODELS_DIR="${TOEZ_MODELS_DIR:-$HOME/.toez/models}"
 BUILD_DIR="$MODELS_DIR/.build"
-
-# The distilled medium: four decoder layers instead of twenty-four, which is
-# most of Thonburian's accuracy at a fraction of the size (ADR-0003).
-HF_MODEL='biodatlab/distill-whisper-th-medium'
-MODEL_NAME='ggml-thonburian-distil-medium'
-QUANTIZATION='q5_0'
+BUILT="$MODELS_DIR/$MODEL_NAME-$QUANTIZATION.bin"
 
 # Pinned to the whisper.cpp release Homebrew installs: the ggml file format and
 # the converter that writes it have to agree.
 WHISPER_CPP_TAG='v1.9.2'
 CONVERTER_URL="https://raw.githubusercontent.com/ggml-org/whisper.cpp/${WHISPER_CPP_TAG}/models/convert-h5-to-ggml.py"
 
-# Whisper's mel filterbank, which lives in OpenAI's repo rather than in the
+# Whisper's mel filterbank, which lives in OpenAI's repo rather than in any
 # fine-tune, and which the converter copies into the ggml file.
 MEL_FILTERS_URL='https://raw.githubusercontent.com/openai/whisper/main/whisper/assets/mel_filters.npz'
-
-VAD_MODEL='ggml-silero-v5.1.2.bin'
-VAD_URL="https://huggingface.co/ggml-org/whisper-vad/resolve/main/${VAD_MODEL}"
 
 say() { printf '\n▸ %s\n' "$1"; }
 
@@ -49,15 +53,8 @@ need whisper-quantize 'brew install whisper-cpp'
 
 mkdir -p "$MODELS_DIR" "$BUILD_DIR"
 
-say "Voice activity model → $MODELS_DIR/$VAD_MODEL"
-if [ -f "$MODELS_DIR/$VAD_MODEL" ]; then
-  echo '  already here'
-else
-  curl -fL --progress-bar -o "$MODELS_DIR/$VAD_MODEL" "$VAD_URL"
-fi
-
-if [ -f "$MODELS_DIR/$MODEL_NAME-$QUANTIZATION.bin" ]; then
-  say "$MODEL_NAME-$QUANTIZATION.bin is already built — delete it to rebuild."
+if [ -f "$BUILT" ]; then
+  say "$(basename "$BUILT") is already built — delete it to rebuild."
   exit 0
 fi
 
@@ -73,7 +70,7 @@ say "$HF_MODEL"
 import sys
 from huggingface_hub import snapshot_download
 
-# Weights and tokenizer only: the repo also carries training logs and images.
+# Weights and tokenizer only: these repos also carry training logs and images.
 snapshot_download(
     sys.argv[1],
     local_dir=sys.argv[2],
@@ -86,8 +83,8 @@ curl -fLs -o "$BUILD_DIR/convert-h5-to-ggml.py" "$CONVERTER_URL"
 mkdir -p "$BUILD_DIR/whisper/whisper/assets"
 curl -fLs -o "$BUILD_DIR/whisper/whisper/assets/mel_filters.npz" "$MEL_FILTERS_URL"
 
-# The converter reads the byte-level BPE vocabulary from vocab.json, which this
-# fine-tune does not ship separately — it is inside tokenizer.json instead.
+# The converter reads the byte-level BPE vocabulary from vocab.json. Some of
+# these fine-tunes ship it; the rest keep it inside tokenizer.json instead.
 if [ ! -f "$BUILD_DIR/hf/vocab.json" ]; then
   say 'Recovering vocab.json from tokenizer.json'
   "$BUILD_DIR/venv/bin/python" - "$BUILD_DIR/hf" <<'PY'
@@ -107,16 +104,13 @@ fi
 say 'Converting to ggml'
 "$BUILD_DIR/venv/bin/python" "$BUILD_DIR/convert-h5-to-ggml.py" \
   "$BUILD_DIR/hf" "$BUILD_DIR/whisper" "$BUILD_DIR"
-mv "$BUILD_DIR/ggml-model.bin" "$BUILD_DIR/$MODEL_NAME.bin"
 
 say "Quantizing to $QUANTIZATION"
-whisper-quantize \
-  "$BUILD_DIR/$MODEL_NAME.bin" \
-  "$MODELS_DIR/$MODEL_NAME-$QUANTIZATION.bin" \
-  "$QUANTIZATION" >/dev/null
+whisper-quantize "$BUILD_DIR/ggml-model.bin" "$BUILT" "$QUANTIZATION" >/dev/null
 
 say 'Clearing up'
 rm -rf "$BUILD_DIR"
 
-printf '\nT.O.E.Z. has ears. `pnpm listen`.\n\n'
+printf '\nBuilt %s\n\n' "$BUILT"
 ls -lh "$MODELS_DIR"
+printf '\nTry it: TOEZ_MODEL=%s pnpm listen\n\n' "$BUILT"

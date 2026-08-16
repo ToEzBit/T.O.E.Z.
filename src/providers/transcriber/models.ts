@@ -8,18 +8,21 @@ import { defaultWorkspaceRoot } from '../../core/workspace/workspace.ts'
  * they are large, they are fetched rather than written, and reinstalling the
  * app should not mean downloading them again.
  *
- * scripts/build-thonburian-model.sh puts them here; docs/ears.md explains.
+ * scripts/fetch-ears-models.sh puts them here; docs/ears.md explains, and
+ * ADR-0004 records why these two.
  */
 
 export const modelsDirectory = join(defaultWorkspaceRoot, 'models')
 
 /**
- * Thonburian Whisper, distilled and quantized — the variant ADR-0003 calls for
- * first, so that the ears fit alongside Electron on an M1 Pro with 16GB.
+ * Whisper large-v3-turbo, quantized. The Owner speaks Thai, English, and both
+ * in one sentence, and this is the only model measured to manage all three —
+ * the Thai fine-tunes ADR-0003 chose turn out to have forgotten English
+ * entirely (ADR-0004). `TOEZ_MODEL` points `pnpm listen` at another one.
  */
 export const defaultModelPath = join(
   modelsDirectory,
-  'ggml-thonburian-distil-medium-q5_0.bin',
+  'ggml-large-v3-turbo-q5_0.bin',
 )
 
 /**

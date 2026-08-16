@@ -13,7 +13,7 @@ Agreed with the Owner, 2026-08-16, after a full grilling session. Vocabulary: se
 
 - Electron, TypeScript only (ADR-0001).
 - Brain: Claude Agent SDK, subscription OAuth from `claude login`, no API key (ADR-0002).
-- STT: whisper.cpp + Thonburian Whisper, distilled/quantized first (M1 Pro, 16GB) (ADR-0003).
+- STT: whisper.cpp, on-device, quantized (M1 Pro, 16GB) (ADR-0003). Thonburian Whisper was the model, until building it showed both variants have forgotten English entirely; the ears run multilingual large-v3-turbo instead, with Thonburian kept as a comparison for the Owner to judge on their own voice (ADR-0004).
 - TTS: MiniMax speech-2.6/2.8-turbo, streaming WebSocket, behind a mandatory provider interface (ADR-0003). Second provider: Apple system voices via the macOS `say` command — zero-cost, offline, Owner-selectable outright (many English voices; Thai has only Kanya), and doubling as the automatic offline fallback.
 
 ## Interaction

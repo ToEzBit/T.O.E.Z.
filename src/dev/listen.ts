@@ -35,7 +35,7 @@ for (const path of [modelPath, defaultVadModelPath]) {
   await access(path).catch(() => {
     process.stdout.write(
       `No model at ${path}\n` +
-        `Run scripts/build-thonburian-model.sh — see docs/ears.md.\n`,
+        `Run scripts/fetch-ears-models.sh — see docs/ears.md.\n`,
     )
     process.exit(1)
   })

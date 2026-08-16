@@ -24,7 +24,7 @@ import { Whisper } from '../src/providers/transcriber/whisper.ts'
  *
  * The voices are macOS's own, so the test speaks to itself. That is enough to
  * hold the wiring honest, and no substitute at all for the Owner's real voice:
- * whether Thonburian hears *them* correctly is a question only they can answer,
+ * whether the model hears *them* correctly is a question only they can answer,
  * with `pnpm listen`.
  */
 
@@ -51,12 +51,33 @@ describe('Whisper', () => {
   })
 
   it('hears English, and knows it was English', { timeout: 120_000 }, async () => {
+    // The one that chose the model. A Thai fine-tune fails this outright: asked
+    // this question, `whisper-th-medium-combined` answers `สวัสดีค่ะ วันนี้
+    // กฎหมายเป็นยังไงบ้าง` — fluent Thai with no relation to what was said, and
+    // reported as Thai. ADR-0004 has the measurements.
     const wav = await speak('Samantha', 'Good evening. What is the weather like today?')
 
     const heard = await whisper().transcribe(wav)
 
     expect(heard.language).toBe('en')
     expect(heard.text).toMatch(/weather/i)
+  })
+
+  it('keeps English words in English inside a Thai sentence', { timeout: 120_000 }, async () => {
+    // "ไปแก้ bug ในโปรเจค X" is how the Owner talks. What is asserted is only
+    // that some Latin script survives, because that is the whole difference
+    // between a multilingual model and a Thai one — the Thai fine-tunes render
+    // "pnpm test" as `พี่เอ็นพี่เอ็มเทสต์`, which reaches the Engine as a wrong
+    // utterance rather than an accented one.
+    //
+    // Which English word survives is not asserted, and could not honestly be:
+    // Kanya is a Thai voice reading Latin text, so she says these with Thai
+    // phonology. A person code-switching sounds different.
+    const wav = await speak('Kanya', 'ช่วยเปิด terminal แล้วรัน pnpm test ให้หน่อยครับ')
+
+    const heard = await whisper().transcribe(wav)
+
+    expect(heard.text).toMatch(/[A-Za-z]/)
   })
 
   it('hears nothing at all in silence', { timeout: 120_000 }, async () => {

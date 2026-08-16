@@ -12,6 +12,9 @@ import { promisify } from 'node:util'
  * the same under `pnpm listen`, under the integration tests, and under Electron.
  *
  * Not bundled. `brew install whisper-cpp` — see docs/ears.md.
+ *
+ * Which model it runs is a live question the Owner settles on their own voice,
+ * so it is a constructor argument rather than a constant (ADR-0004).
  */
 
 const run = promisify(execFile)

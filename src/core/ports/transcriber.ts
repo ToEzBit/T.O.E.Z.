@@ -1,9 +1,9 @@
 import type { Utterance } from '../utterance.ts'
 
 /**
- * The Transcriber is T.O.E.Z.'s ears: whisper.cpp running Thonburian Whisper,
- * on-device (ADR-0003). Capture is gated strictly by the held push-to-talk key,
- * so the orchestrator drives it in explicit start/stop pairs.
+ * The Transcriber is T.O.E.Z.'s ears: whisper.cpp on-device (ADR-0003; which
+ * model, ADR-0004). Capture is gated strictly by the held push-to-talk key, so
+ * the orchestrator drives it in explicit start/stop pairs.
  */
 export interface Transcriber {
   /** Begins capturing audio. Called when the push-to-talk key goes down. */

@@ -22,21 +22,10 @@ export interface PushToTalkHandlers {
   readonly released: () => void
 }
 
-export interface PushToTalkOptions {
-  /**
-   * Which key to listen for, as a uiohook keycode. Right ⌘ by default (DESIGN);
-   * making it settable is what T11's rebinding setting will write into.
-   */
-  readonly keycode?: number
-}
+/** Right ⌘ (DESIGN). T11 makes this settable; until then it is the key. */
+const PUSH_TO_TALK_KEY = UiohookKey.MetaRight
 
 export class PushToTalk {
-  readonly #keycode: number
-
-  constructor(options: PushToTalkOptions = {}) {
-    this.#keycode = options.keycode ?? UiohookKey.MetaRight
-  }
-
   /**
    * Starts watching, and hands back the way to stop. Nothing about any other
    * key leaves this object.
@@ -50,13 +39,13 @@ export class PushToTalk {
     let held = false
 
     const onKeydown = (event: { keycode: number }): void => {
-      if (event.keycode !== this.#keycode || held) return
+      if (event.keycode !== PUSH_TO_TALK_KEY || held) return
       held = true
       handlers.pressed()
     }
 
     const onKeyup = (event: { keycode: number }): void => {
-      if (event.keycode !== this.#keycode || !held) return
+      if (event.keycode !== PUSH_TO_TALK_KEY || !held) return
       held = false
       handlers.released()
     }

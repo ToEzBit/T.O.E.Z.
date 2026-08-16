@@ -72,7 +72,10 @@ describe('Whisper', () => {
     //
     // Which English word survives is not asserted, and could not honestly be:
     // Kanya is a Thai voice reading Latin text, so she says these with Thai
-    // phonology. A person code-switching sounds different.
+    // phonology. A person code-switching sounds different. So this catches a
+    // model that has lost English altogether — the regression that actually
+    // happened — and says nothing about how well the rest was heard. Only the
+    // Owner on `pnpm listen` can answer that.
     const wav = await speak('Kanya', 'ช่วยเปิด terminal แล้วรัน pnpm test ให้หน่อยครับ')
 
     const heard = await whisper().transcribe(wav)

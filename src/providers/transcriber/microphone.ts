@@ -84,16 +84,27 @@ class Recording {
       this.#complaints = (this.#complaints + chunk.toString()).slice(-2000)
     })
 
-    this.#exited = new Promise((resolve, reject) => {
-      this.#ffmpeg.on('error', reject)
-      this.#ffmpeg.on('close', resolve)
+    // Writing `q` to a process that has already died raises EPIPE on the pipe
+    // rather than at the call, and an unhandled one of those ends the process.
+    this.#ffmpeg.stdin.on('error', () => undefined)
+
+    // Deliberately never rejects. Nothing awaits it until `finish`, and a
+    // promise that rejects with nobody listening takes the whole process down —
+    // which is how a missing ffmpeg used to end in a stack trace rather than in
+    // the sentence below. A process that never started emits `error` and no
+    // `close`; one that started always emits `close`.
+    this.#exited = new Promise((resolve) => {
+      this.#ffmpeg.once('error', () => {
+        resolve(null)
+      })
+      this.#ffmpeg.once('close', resolve)
     })
 
     this.#live = new Promise<void>((resolve, reject) => {
       this.#ffmpeg.stdout.once('data', () => {
         resolve()
       })
-      this.#ffmpeg.on('error', (error: NodeJS.ErrnoException) => {
+      this.#ffmpeg.once('error', (error: NodeJS.ErrnoException) => {
         reject(
           error.code === 'ENOENT'
             ? new Error('ffmpeg is not installed — see docs/ears.md.')
@@ -102,7 +113,7 @@ class Recording {
       })
       // Exiting before a single progress report means no audio was ever
       // captured. The usual cause is macOS refusing microphone access.
-      this.#ffmpeg.on('close', () => {
+      this.#ffmpeg.once('close', () => {
         reject(new Error(`The microphone never opened.${this.#tail()}`))
       })
     })

@@ -40,9 +40,19 @@ test". `large-v3-turbo` keeps `PNPM Test` in Latin script, and `medium` keeps
 the Engine is a wrong utterance, not an accented one, and "ไปแก้ bug ในโปรเจค X"
 is how the Owner actually talks.
 
-`medium` won the mixed recording and lost the harder Thai one, mishearing
-`ฉบับนี้` as `ชะบักนี้` and `ค่าชดเชย` as `ค่าชดเฉย`. `large-v3-turbo` made no Thai
-error in either.
+## How the winner was picked
+
+`medium` won the mixed recording outright, and it is not the choice. The rule
+applied was **Thai first, then English**: Thai is the language T.O.E.Z. is
+spoken to in, and a model that mishears it is wrong about the sentence rather
+than about one borrowed word. `medium` lost the harder Thai recording,
+mishearing `ฉบับนี้` as `ชะบักนี้` and `ค่าชดเชย` as `ค่าชดเฉย`. That left two
+models exact on both Thai recordings — `large-v3-turbo` and Thonburian — and
+only one of those two can hear English at all.
+
+So the order is: exact on Thai, then English at all, then mixed as a
+tie-breaker that never had to be applied. `large-v3-turbo` is the only model
+that reaches the second rung.
 
 ## What this evidence cannot settle
 

@@ -1,5 +1,11 @@
 # Voice stack: local Whisper STT, MiniMax TTS behind a provider interface
 
+> **Narrowed by [ADR-0004](./0004-multilingual-whisper-over-thai-fine-tune.md).**
+> The choice of whisper.cpp, local and quantized, stands. The choice of
+> Thonburian as the model does not: built and measured, both variants answer
+> English with fluent Thai nonsense, and the Owner mixes the two in a sentence.
+> Everything below about TTS is untouched.
+
 Ears are local and free: whisper.cpp (Metal) running Thonburian Whisper — a Thai-fine-tuned Whisper (WER ~6.6% Thai, MIT) — starting with a distilled/quantized model to fit alongside Electron in 16GB RAM. Mouth is cloud: MiniMax speech-2.6/2.8-turbo over streaming WebSocket (<250ms), because the Owner's requirements — natural Thai, selectable/clonable voices ($1.50 one-time clone), one voice speaking mixed Thai-English — have no local answer. Apple's Kanya is the offline-only fallback voice.
 
 **TTS must sit behind a provider interface** — the Owner explicitly required that MiniMax be swappable without rework. No MiniMax types outside the provider module.

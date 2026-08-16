@@ -12,7 +12,7 @@ import { defaultWorkspaceRoot } from '../../core/workspace/workspace.ts'
  * ADR-0004 records why these two.
  */
 
-export const modelsDirectory = join(defaultWorkspaceRoot, 'models')
+const modelsDirectory = join(defaultWorkspaceRoot, 'models')
 
 /**
  * Whisper large-v3-turbo, quantized. The Owner speaks Thai, English, and both

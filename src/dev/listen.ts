@@ -16,7 +16,7 @@ import { MuteVoice } from './mute-voice.ts'
  * T.O.E.Z.'s ears, on their own. Hold Right ⌘, speak Thai or English or both,
  * release, and read what it heard. Nothing answers: the Engine and the Voice
  * are stand-ins, because the only question this surface exists to ask is
- * whether the transcript is right.
+ * whether it heard the Owner right.
  *
  * `pnpm listen`. Ctrl-C ends it.
  *
@@ -93,14 +93,11 @@ session.onEffect((effect) => {
   }
 })
 
-// Key events arrive whenever the Owner presses, not when the Session is ready
-// for them, so they queue: a release must never start closing a microphone that
-// is still opening.
-let turns = Promise.resolve()
-
+// A key event is not something that can be awaited at — the Owner presses when
+// they press. The Session queues them; all that is left here is to notice when
+// one of them fails.
 function dispatch(event: SessionEvent): void {
-  turns = turns.then(() => session.dispatch(event))
-  turns.catch((error: unknown) => {
+  session.dispatch(event).catch((error: unknown) => {
     // The Session has no way to recover from this yet: a provider failure
     // becomes a SessionEvent in a later ticket, and until then the Session is
     // left mid-turn with nothing that can move it on.

@@ -11,7 +11,7 @@ Three things are not npm's to install: `ffmpeg` and `whisper-cpp`, from Homebrew
 | Command                | Does                                                             |
 | ---------------------- | ---------------------------------------------------------------- |
 | `pnpm ask`             | One real Session from the keyboard — see below                    |
-| `pnpm listen`          | The ears on their own: hold Right ⌘ and read the transcript       |
+| `pnpm listen`          | The ears on their own: hold Right ⌘ and read the Utterance        |
 | `pnpm dev`             | Runs the app with reload                                          |
 | `pnpm build`           | Bundles the main process into `out/`                              |
 | `pnpm start`           | Runs the built bundle                                             |
@@ -30,8 +30,8 @@ would change how `out/main` is loaded, which is Electron's business.
 
 `pnpm ask` talks to the real Engine on the Owner's subscription, so it spends
 real tokens. So does `pnpm test:integration`, which needs `claude login` to have
-happened. `pnpm listen` never does — its Engine is a stand-in that repeats what
-it heard. `pnpm test` never does either.
+happened. `pnpm listen` never does — its Engine and its Voice are
+stand-ins with nothing to say. `pnpm test` never does either.
 
 ## Layout
 
@@ -55,7 +55,7 @@ One seam: the Session orchestrator. Tests feed it events and assert the effects 
 
 Three other files are in the fast suite, and none of them mocks anything: `workspace.test.ts` drives the real Workspace against a temp directory, and `subscription-auth.test.ts` checks a promise ADR-0002 makes about the whole repository rather than about any one module. What a provider actually does belongs in `*.integration.test.ts`, against the real provider — a fake Engine can only prove what it was told to say, and a fake Transcriber can only prove what it was told it heard.
 
-Some things no test can settle. Whether Whisper hears the *Owner* correctly is answered by the Owner on `pnpm listen`; `whisper-transcriber.integration.test.ts` puts macOS's own voices through the real whisper.cpp, which holds the wiring honest and is a much easier thing to hear. Which model to run is still open for the same reason — ADR-0004.
+Some things no test can settle. Whether Whisper hears the *Owner* correctly is answered by the Owner on `pnpm listen`; `ears.integration.test.ts` puts macOS's own voices through the real whisper.cpp, which holds the wiring honest and is a much easier thing to hear. Which model to run is still open for the same reason — ADR-0004.
 
 ## Agent skills
 

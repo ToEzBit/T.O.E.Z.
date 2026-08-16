@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-MODELS_DIR="${TOEZ_MODELS_DIR:-$HOME/.toez/models}"
+MODELS_DIR="$HOME/.toez/models"
 BASE_URL='https://huggingface.co'
 
 fetch() {

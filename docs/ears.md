@@ -36,7 +36,7 @@ pnpm listen
 
 Hold Right ⌘, speak Thai or English or both, release. T.O.E.Z. shows what it
 heard, and nothing answers: the Engine and the Voice are stand-ins here, because
-the only question this surface asks is whether the transcript is right.
+the only question this surface asks is whether it heard the Owner right.
 
 Two knobs, for finding out what the Owner's own voice prefers:
 

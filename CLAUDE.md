@@ -4,7 +4,7 @@ Personal Jarvis-style voice agent for macOS. Start with [DESIGN.md](./DESIGN.md)
 
 ## Commands
 
-Package manager is **pnpm**. Electron and esbuild need their install scripts, which pnpm gates — `pnpm.onlyBuiltDependencies` in `package.json` lists them.
+Package manager is **pnpm**. esbuild needs its install script, which pnpm gates — `pnpm.onlyBuiltDependencies` in `package.json` lists it. Electron needs no entry: since v43 it has no postinstall and fetches its binary the first time you run it, so a fresh clone's first `pnpm dev` prints `Downloading Electron binary...` and then starts.
 
 | Command                | Does                                                             |
 | ---------------------- | ---------------------------------------------------------------- |

@@ -66,8 +66,109 @@ describe('the Session orchestrator', () => {
     })
   })
 
+  it('speaks the first sentence while the rest of the reply is still arriving', async () => {
+    // The whole of T4: the Owner hears the answer beginning before the Engine
+    // has finished writing it. Without this the wait is transcription plus the
+    // whole reply plus synthesis, and a conversation cannot be had at that
+    // length.
+    const engine = new ScriptedEngine([['Good evening. ', 'Nine o’clock, เจ้านาย.']])
+    const transcriber = new CannedTranscriber(['What time is it?'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(effects.slice(4)).toEqual<SessionEffect[]>([
+      { type: 'show-reply-chunk', chunk: { text: 'Good evening. ' } },
+      { type: 'speak', request: { text: 'Good evening.' } },
+      { type: 'show-reply-chunk', chunk: { text: 'Nine o’clock, เจ้านาย.' } },
+      { type: 'speak', request: { text: 'Nine o’clock, เจ้านาย.' } },
+    ])
+  })
+
+  it('speaks every word of the reply exactly once', async () => {
+    // The failure this guards against is speaking the sentences as they arrive
+    // and then the whole reply again at the end, which is what the Session used
+    // to do when the reply was only ever spoken once, at the end.
+    const engine = new ScriptedEngine([['One. ', 'Two. ', 'Three.']])
+    const transcriber = new CannedTranscriber(['Count to three.'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(voice.spoken).toEqual([
+      { text: 'One.' },
+      { text: 'Two.' },
+      { text: 'Three.' },
+    ])
+  })
+
+  it('breaks a Thai reply at a space, having no full stop to break at', async () => {
+    // Thai does not end its sentences with a full stop — it puts a space where
+    // another language puts one. A reply in the language T.O.E.Z. is normally
+    // spoken to therefore contains nothing a sentence splitter would find, and
+    // would be spoken only once it was complete: the case that matters most,
+    // failing silently while English passed.
+    const engine = new ScriptedEngine([
+      [
+        'ตอนนี้เก้าโมงเช้าครับ เจ้านาย ',
+        'อากาศข้างนอกกำลังดี ลมเย็นสบาย ',
+        'เหมาะกับการออกไปเดินเล่นมากครับ ',
+        'เดี๋ยวผมเปิดหน้าต่างให้นะครับ',
+      ],
+    ])
+    const transcriber = new CannedTranscriber(['ตอนนี้กี่โมงแล้ว'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(voice.spoken).toEqual([
+      { text: 'ตอนนี้เก้าโมงเช้าครับ เจ้านาย อากาศข้างนอกกำลังดี ลมเย็นสบาย' },
+      { text: 'เหมาะกับการออกไปเดินเล่นมากครับ เดี๋ยวผมเปิดหน้าต่างให้นะครับ' },
+    ])
+    // Said aloud before the last of the reply was written, which is the point.
+    expect(effects.findIndex((effect) => effect.type === 'speak')).toBeLessThan(
+      effects.findLastIndex((effect) => effect.type === 'show-reply-chunk'),
+    )
+  })
+
+  it('does not mistake the point in a number for the end of a sentence', async () => {
+    const engine = new ScriptedEngine([['It took about ', '2.5 ', 'seconds.']])
+    const transcriber = new CannedTranscriber(['How long did that take?'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(voice.spoken).toEqual([{ text: 'It took about 2.5 seconds.' }])
+  })
+
+  it('says nothing when the reply is nothing but whitespace', async () => {
+    const engine = new ScriptedEngine([['  ', '\n']])
+    const transcriber = new CannedTranscriber(['Hello'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(voice.spoken).toEqual([])
+  })
+
   it('carries on into a second turn once it has finished speaking', async () => {
-    const engine = new ScriptedEngine([['Good evening.'], ['Nine o’clock.']])
+    // The first turn is spoken in pieces and the second one is not, so this
+    // also stands for the Session finding its way back to idle from either.
+    const engine = new ScriptedEngine([['Good evening. ', 'All quiet.'], ['Nine o’clock.']])
     const transcriber = new CannedTranscriber(['Hello', 'What time is it?'])
     const voice = new RecordingVoice()
     const session = new SessionRuntime({ engine, transcriber, voice })
@@ -83,6 +184,7 @@ describe('the Session orchestrator', () => {
     ])
     expect(voice.spoken).toEqual([
       { text: 'Good evening.' },
+      { text: 'All quiet.' },
       { text: 'Nine o’clock.' },
     ])
   })

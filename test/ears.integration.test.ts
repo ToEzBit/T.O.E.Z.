@@ -138,21 +138,38 @@ describe('the microphone', () => {
     const microphone = new Microphone()
 
     await microphone.open(wav)
-    // `open` resolving is the claim under test: that it waits for the device
-    // rather than for the process, so audio from here on is really captured.
+    // `open` resolving is the claim under test: that it waits for the device to
+    // be sending audio, so anything said from here on is really captured.
     await new Promise((resolve) => setTimeout(resolve, 1000))
     await microphone.close()
 
-    const header = await readFile(wav)
-    expect(header.subarray(0, 4).toString()).toBe('RIFF')
+    const recording = await readFile(wav)
+    expect(recording.subarray(0, 4).toString()).toBe('RIFF')
     // What whisper.cpp wants, so that nothing has to resample it: mono, 16 kHz.
-    expect(header.readUInt16LE(22)).toBe(1)
-    expect(header.readUInt32LE(24)).toBe(16_000)
+    expect(recording.readUInt16LE(22)).toBe(1)
+    expect(recording.readUInt32LE(24)).toBe(16_000)
 
-    // Around a second of it. Generous at both ends: this is measuring a real
-    // device, not a clock.
-    const seconds = (header.length - 44) / (16_000 * 2)
-    expect(seconds).toBeGreaterThan(0.5)
-    expect(seconds).toBeLessThan(2)
+    // The header has to be exactly this long, or audio read at this offset is
+    // really the header's own text — which is how a version string once passed
+    // for sound and let the check below succeed on a silent recording.
+    expect(recording.indexOf(Buffer.from('data')) + 8).toBe(44)
+
+    // The one that matters, and the one whose absence hid a real bug: a
+    // recording of the right length and format, made entirely of zeroes. A
+    // Bluetooth headset sends nothing for its first two or three seconds while
+    // ffmpeg dutifully writes silence, so the Owner was told to speak into a
+    // microphone that could not yet hear them.
+    //
+    // The second the Owner was invited to speak into is the last one, not the
+    // first: everything before `open` resolved may legitimately be the device
+    // waking up. No room is silent to the last bit, so any non-zero sample in
+    // that second means it was really being heard.
+    const audio = recording.subarray(44)
+    const lastSecond = audio.subarray(-16_000 * 2)
+    expect(lastSecond.some((byte) => byte !== 0)).toBe(true)
+
+    // At least the second that was waited out. No upper bound worth asserting:
+    // the rest is however long the device took to wake up.
+    expect(audio.length / (16_000 * 2)).toBeGreaterThan(0.9)
   })
 })

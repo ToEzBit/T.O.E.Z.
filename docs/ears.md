@@ -120,11 +120,16 @@ TOEZ_MODEL=~/.toez/models/ggml-large-v3-turbo-q5_0.bin pnpm listen
 
 ## What to expect
 
-**The microphone takes about half a second to open.** avfoundation, not
-T.O.E.Z. Words spoken before it opens are not recorded at all, so `pnpm listen`
-waits for the device and *then* prints `🎙 ฟังอยู่ครับ` — that, not the
-keypress, is the cue to speak. Anything that shows the Owner they are being
-heard has to wait for the same moment.
+**Wait for `🎙 ฟังอยู่ครับ` before speaking.** Words said before it are not
+recorded badly — they are not recorded at all, and the transcript comes back
+missing its first word or two with no sign anything went wrong.
+
+How long that takes depends entirely on the microphone. The built-in one is
+ready in about half a second. **AirPods take two to three** while Bluetooth
+negotiates, and ffmpeg writes digital silence into the recording the whole time
+— so `pnpm listen` waits for the device to actually send a sample before saying
+anything, rather than for ffmpeg to start. Past six seconds it gives up waiting
+and says so anyway, on the grounds that the device is probably muted.
 
 **Two to three seconds to transcribe** a sentence, on an M1 Pro. Whisper reads
 the whole recording once the key is released; nothing is transcribed while the

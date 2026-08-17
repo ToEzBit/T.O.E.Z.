@@ -54,10 +54,10 @@ stand-ins with nothing to say. `pnpm test` never does either.
   - `session/` — `orchestrator.ts` is pure (`state + event → state + effects`); `session-runtime.ts` runs those effects against the ports and feeds results back as events. `phrases.ts` decides how much of a streaming reply can be spoken yet — Thai has no full stop, so this is not a sentence splitter.
   - `workspace/` — `~/.toez`: the Persona now, Memory and Transcripts later. Opening it creates it, so first run needs no setup.
   - `testing/` — one fake per port, used by the tests.
-- `src/providers/` — the real things behind the ports. Node, not Electron, so they run under `pnpm ask`, `pnpm listen` and the integration tests.
+- `src/providers/` — the real things behind the ports. Node, not Electron, so they run under `pnpm ask`, `pnpm listen`, `pnpm say` and the integration tests.
   - `engine/` — the Agent SDK Engine, which ADR-0002 requires stay behind its own boundary.
   - `transcriber/` — the ears: ffmpeg records, whisper.cpp reads. Both are subprocesses, so nothing here has to be rebuilt against Electron's ABI.
-  - `voice/` — the mouth: MiniMax synthesises over a WebSocket, ffplay plays. ADR-0003 makes the provider interface mandatory, so no MiniMax type leaves `minimax.ts`. The socket is Node's own — no `ws` dependency; custom headers on it were checked under both Node 26 and Electron's Node 24.
+  - `voice/` — the mouth: MiniMax synthesises over a WebSocket, ffplay plays. ADR-0003 makes the provider interface mandatory, so nothing MiniMax-shaped leaves this directory. The socket is Node's own — no `ws` dependency; custom headers on it were checked under both Node 26 and Electron's Node 24.
   - `hotkey/` — Right ⌘, watched system-wide. Not a port and not behind one: ports are what the Session *calls*, and this only tells it something happened, which is what a SessionEvent is for. The three fakeable seams stay three.
 - `src/dev/` — the keyboard-driven Session, the ears on their own, the mouth on its own, and the stand-ins they need. Not shipped; deleted once there are real ears and a real mouth in the app itself.
 - `src/main/` — the Electron main process: menu bar presence and, later, the Panel.

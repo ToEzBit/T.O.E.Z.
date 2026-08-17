@@ -33,7 +33,7 @@ export function millisecondsOfAudio(bytes: number, sampleRate: number): number {
   return (bytes / (sampleRate * BYTES_PER_SAMPLE)) * 1000
 }
 
-export class Speaker {
+export class Speakers {
   readonly #sampleRate: number
   #ffplay: ChildProcessWithoutNullStreams | undefined
   #gone: Promise<void> | undefined
@@ -89,8 +89,8 @@ export class Speaker {
     this.#gone = undefined
     this.#quietAt = 0
     ffplay.stdin.end()
-    // `-autoexit` above: ffplay leaves once it reaches the end of the input and
-    // has played all of it.
+    // `-autoexit`, in the arguments below: ffplay leaves once it reaches the
+    // end of the input and has played all of it.
     await gone
   }
 

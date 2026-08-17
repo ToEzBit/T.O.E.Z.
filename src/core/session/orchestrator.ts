@@ -21,8 +21,8 @@ export type SessionPhase =
   /** The key is held; the Owner is speaking. */
   | 'listening'
   /**
-   * The key is up; transcribing and generating a reply. Sentences of that
-   * reply are spoken as they come, so this is not a silent phase.
+   * The key is up; transcribing and generating a reply. Phrases of that reply
+   * are spoken as they come, so this is not a silent phase.
    */
   | 'thinking'
   /** The reply is complete; saying the last of it aloud. */
@@ -119,7 +119,7 @@ export function handle(state: SessionState, event: SessionEvent): SessionStep {
 
     case 'reply-completed': {
       if (state.phase !== 'thinking') return unchanged(state)
-      // Whatever is left never became a whole sentence, and now never will:
+      // Whatever is left never became a phrase on its own, and now never will:
       // nothing more is coming. It is spoken as it stands — and only it, since
       // everything before it has already been said.
       const last = state.unspoken.trim()

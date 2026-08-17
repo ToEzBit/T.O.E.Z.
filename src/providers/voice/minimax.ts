@@ -1,16 +1,17 @@
 /**
  * MiniMax's text-to-audio service, over the streaming WebSocket protocol
- * (ADR-0003). This module is the only place that knows MiniMax exists: the ADR
- * requires that no MiniMax type reach past the provider, so that swapping to
- * Azure — or to Apple's own voices in T11 — is a new file rather than a rework.
+ * (ADR-0003). Nothing MiniMax-shaped leaves this provider module, which is what
+ * the ADR asks for, so that swapping to Azure — or to Apple's own voices in
+ * T11 — is a new file rather than a rework.
  *
  * The protocol is a conversation. Connect, wait to be greeted, open a task with
  * the settings that hold for all of it, then hand over text; audio comes back
  * in pieces as it is synthesised, and a piece marked final ends that text. More
  * text may follow on the same connection, which is the whole reason for using
- * the socket rather than the HTTP endpoint: a reply is spoken sentence by
- * sentence, and paying for a new connection per sentence would be heard as a
- * gap between them.
+ * the socket rather than the HTTP endpoint: a reply is spoken a phrase at a
+ * time, and the handshake for a new connection would land in the silence
+ * between one phrase and the next, where there is already a wait for MiniMax to
+ * answer at all.
  *
  * No API key is in this file or anywhere else in this repository — it arrives
  * from the environment at the edge of the program, and nothing here prints it.
@@ -19,7 +20,7 @@
 const ENDPOINT = 'wss://api.minimax.io/ws/v1/t2a_v2'
 
 /**
- * Raw signed 16-bit samples at 24 kHz, which the Speaker plays without
+ * Raw signed 16-bit samples at 24 kHz, which the speakers play without
  * decoding anything. MP3 would be a third of the bytes and would have to be
  * decoded before it could be played — latency in the one place this ticket
  * exists to keep it out of, and a format whose length cannot be read off the
@@ -129,7 +130,7 @@ export class MinimaxSocket {
   /**
    * Synthesises `text`, handing each piece of audio over the moment it arrives
    * rather than collecting them. Resolves when the last of that text has been
-   * synthesised — not when it has been heard, which is the Speaker's business.
+   * synthesised — not when it has been heard, which is the speakers' business.
    */
   async say(text: string, onAudio: (audio: Buffer) => void): Promise<void> {
     if (this.#speaking) {

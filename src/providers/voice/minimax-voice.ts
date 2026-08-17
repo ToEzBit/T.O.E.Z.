@@ -1,20 +1,27 @@
 import type { SpeakRequest, VoiceProvider } from '../../core/ports/voice.ts'
 import { MinimaxSocket, SAMPLE_RATE, type MinimaxOptions } from './minimax.ts'
-import { millisecondsOfAudio, Speaker } from './speaker.ts'
+import { millisecondsOfAudio, Speakers } from './speakers.ts'
 
 /**
  * T.O.E.Z.'s real mouth: MiniMax synthesising, ffplay playing, one phrase at a
  * time as the reply is written (ADR-0003).
  *
- * The Session hands this whole sentences and phrases rather than the whole
- * reply — that decision is the orchestrator's, in `phrases.ts` — and this
- * speaks each one as it comes. `speak` resolves when the phrase has been
- * *heard*, not when it has been synthesised, because the Session goes back to
- * waiting for the Owner on the strength of it.
+ * The Session hands this one phrase at a time rather than the whole reply —
+ * that decision is the orchestrator's, in `phrases.ts` — and this speaks each
+ * one as it comes. `speak` resolves when the phrase has been *heard*, not when
+ * it has been synthesised, because the Session goes back to waiting for the
+ * Owner on the strength of it.
+ *
+ * That also means the Session does not go looking for the next phrase until
+ * this one has finished playing, so every phrase after the first is preceded by
+ * however long MiniMax takes to answer — which `onSpoke` reports as `waitedMs`,
+ * and `pnpm say` prints, because it is the thing to listen for. Handing phrases
+ * over before the previous one is done is the change to make if it is audible,
+ * and it is a change to the Voice interface rather than to this file.
  *
  * The connection is kept between phrases and dropped when it stops working.
  * That is worth the bookkeeping: opening one costs a round trip to Singapore,
- * and paying it between the sentences of a single reply would be audible.
+ * which would otherwise be added to exactly that silence.
  */
 
 /**
@@ -32,7 +39,11 @@ export const defaultVoiceModel = 'speech-2.6-turbo'
 /** What one phrase cost, in the two numbers that decide how this feels. */
 export interface Spoken {
   readonly text: string
-  /** From asking MiniMax for this phrase to the first audio of it arriving. */
+  /**
+   * The silence before this phrase: from wanting it said to the first audio of
+   * it arriving. On the first phrase of a turn that is the wait after thinking;
+   * on every phrase after it, the gap between one phrase and the next.
+   */
   readonly waitedMs: number
   /** How much speech it turned out to be. */
   readonly audioMs: number
@@ -51,7 +62,7 @@ export interface MinimaxVoiceOptions extends Partial<MinimaxOptions> {
 export class MinimaxVoice implements VoiceProvider {
   readonly #minimax: MinimaxOptions
   readonly #onSpoke: ((spoken: Spoken) => void) | undefined
-  readonly #speaker = new Speaker(SAMPLE_RATE)
+  readonly #speakers = new Speakers(SAMPLE_RATE)
   #socket: MinimaxSocket | undefined
 
   constructor(options: MinimaxVoiceOptions) {
@@ -76,7 +87,7 @@ export class MinimaxVoice implements VoiceProvider {
       await socket.say(text, (audio) => {
         firstAudioAt ??= performance.now()
         bytes += audio.length
-        this.#speaker.play(audio)
+        this.#speakers.play(audio)
       })
     } catch (error) {
       // Whatever went wrong, this connection is not to be spoken through
@@ -86,7 +97,7 @@ export class MinimaxVoice implements VoiceProvider {
       throw error
     }
 
-    await this.#speaker.untilQuiet()
+    await this.#speakers.untilQuiet()
     this.#onSpoke?.({
       text,
       waitedMs: (firstAudioAt ?? performance.now()) - asked,
@@ -101,7 +112,7 @@ export class MinimaxVoice implements VoiceProvider {
   async close(): Promise<void> {
     this.#socket?.close()
     this.#socket = undefined
-    await this.#speaker.close()
+    await this.#speakers.close()
   }
 
   /**

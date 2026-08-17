@@ -5,7 +5,7 @@ import {
   defaultVoiceModel,
 } from '../src/providers/voice/minimax-voice.ts'
 import { MinimaxSocket, SAMPLE_RATE } from '../src/providers/voice/minimax.ts'
-import { millisecondsOfAudio, Speaker } from '../src/providers/voice/speaker.ts'
+import { millisecondsOfAudio, Speakers } from '../src/providers/voice/speakers.ts'
 
 /**
  * The mouth's contract, against the real MiniMax and the real ffplay. The
@@ -120,14 +120,14 @@ describe('the speakers', () => {
     // under test is the clock, not the sound: the Session goes back to waiting
     // for the Owner on the strength of `untilQuiet`, so it has to be roughly
     // the length of the audio and not instant.
-    const speaker = new Speaker(SAMPLE_RATE)
+    const speakers = new Speakers(SAMPLE_RATE)
     const halfASecond = Buffer.alloc(SAMPLE_RATE)
 
     const at = performance.now()
-    speaker.play(halfASecond)
-    await speaker.untilQuiet()
+    speakers.play(halfASecond)
+    await speakers.untilQuiet()
     const waited = performance.now() - at
-    await speaker.close()
+    await speakers.close()
 
     expect(waited).toBeGreaterThan(400)
     // Half a second of audio, plus the quarter ffplay takes to start, plus

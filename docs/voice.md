@@ -89,21 +89,27 @@ the voice can put a small pause it did not mean. Smaller starts sooner.
 
 ## What to expect
 
-**The number that matters is the first one.** `pnpm say` prints, for every
+**`รอ` is silence, every time it is printed.** `pnpm say` prints, for each
 phrase, how long it was between wanting that phrase said and the first audio of
-it arriving (`รอ`) and how much speech it turned into (`เสียง`), and at the end
-how long it was before the first word was said at all. On the first phrase of a
-Session `รอ` includes opening the connection, which is honest: it is silence the
-Owner sits in either way. Everything after the first phrase is time they are
-already listening through.
+it arriving (`รอ`) and how much speech it turned into (`เสียง`).
+
+On the first phrase that is the wait after thinking, and it includes opening the
+connection. **On every phrase after it, `รอ` is a gap in the middle of the
+reply** — T.O.E.Z. does not go looking for the next phrase until the last one
+has finished playing, so it is not synthesised until then either. Whether that
+reads as a natural pause between thoughts or as a stutter is exactly what an ear
+is needed for. If it is a stutter, the fix is to hand phrases over before the
+one before has finished, which changes the Voice interface; `session-runtime.ts`
+says where.
 
 MiniMax promises the first audio inside a quarter of a second. Add a round trip
 to Singapore, and the connection being opened on the first phrase of a Session.
 
 **The connection is kept between phrases.** Opening one costs that round trip,
-and paying it between the sentences of a single reply would be heard as a gap.
-MiniMax hangs up on a connection left quiet for two minutes, which between one
-turn and the next is entirely normal, so the next phrase quietly opens another.
+which would otherwise be added to the `รอ` above — the gap is short enough
+already to be worth not lengthening. MiniMax hangs up on a connection left quiet
+for two minutes, which between one turn and the next is entirely normal, so the
+next phrase quietly opens another.
 
 **A quarter of a second of it is ffplay.** Starting the player and opening the
 audio device costs about that, once, on the first phrase of the Session — the

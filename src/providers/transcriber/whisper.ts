@@ -37,10 +37,17 @@ export interface WhisperOptions {
    */
   readonly vadModelPath: string
   /**
-   * The language to decode as, or `auto` to let Whisper decide per recording.
-   * `auto` is the default because the Owner mixes Thai and English freely.
+   * The language to decode as, as an ISO 639-1 code — or `auto` to let Whisper
+   * decide per recording.
+   *
+   * Deliberately not optional. Detection is the thing that goes wrong on real
+   * speech through a real microphone: Whisper picks one language for the whole
+   * recording, and on thirty seconds of clean audio it picks right, while on
+   * two seconds through a Bluetooth headset it picks Korean. Making this a
+   * choice rather than a default means nobody gets detection by not thinking
+   * about it (ADR-0005).
    */
-  readonly language?: string
+  readonly language: string
 }
 
 export class Whisper {
@@ -51,7 +58,7 @@ export class Whisper {
   constructor(options: WhisperOptions) {
     this.#modelPath = options.modelPath
     this.#vadModelPath = options.vadModelPath
-    this.#language = options.language ?? 'auto'
+    this.#language = options.language
   }
 
   /**

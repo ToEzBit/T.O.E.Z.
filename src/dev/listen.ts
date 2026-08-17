@@ -21,7 +21,8 @@ import { MuteVoice } from './mute-voice.ts'
  * and the Voice are stand-ins, because the only question this surface exists to
  * ask is whether it heard the Owner right.
  *
- * `pnpm listen`. Ctrl-C ends it. `TOEZ_KEY` tries a different key.
+ * `pnpm listen`. Ctrl-C ends it. `TOEZ_LANGUAGE` is the one worth reaching for:
+ * `en` for an English session, `auto` to let Whisper guess again.
  *
  * Run by Electron rather than by Node, which `pnpm ask` uses — not for anything
  * Electron provides, but for the Node inside it. The keyboard hook delivers one
@@ -38,9 +39,11 @@ import { MuteVoice } from './mute-voice.ts'
 // is exactly what this surface is for finding out. Settings proper arrive in
 // T11.
 const modelPath = process.env.TOEZ_MODEL ?? defaultModelPath
-const language = process.env.TOEZ_LANGUAGE ?? 'auto'
+// Thai unless told otherwise, and never detected by default. See ADR-0005: the
+// Owner speaks Thai to T.O.E.Z. through AirPods, and Whisper asked to guess at
+// two seconds of that answered Korean.
+const language = process.env.TOEZ_LANGUAGE ?? 'th'
 const key = process.env.TOEZ_KEY ?? defaultPushToTalkKey
-const device = process.env.TOEZ_MIC
 // Recordings are deleted as soon as they are transcribed unless this says where
 // to keep them. Set it when a transcript comes back wrong: a bad microphone and
 // a misheard word look identical in text and quite different in the ear.
@@ -69,7 +72,6 @@ const session = new SessionRuntime({
     modelPath,
     vadModelPath: defaultVadModelPath,
     language,
-    ...(device === undefined ? {} : { device }),
     ...(keepRecordingsIn === undefined ? {} : { keepRecordingsIn }),
     // The microphone takes about half a second to open, so this — not the
     // keypress — is the moment the Owner can start talking.
@@ -77,8 +79,9 @@ const session = new SessionRuntime({
       listeningAt = performance.now()
       process.stdout.write('   🎙  ฟังอยู่ครับ\n')
     },
-    // Which language Whisper decided on is the evidence for whether `auto` is
-    // the right setting for this Owner, so it goes on the screen every turn.
+    // The language on every line, so that a run is evidence. With a language
+    // chosen it only confirms what was asked for; under `auto` it is the whole
+    // story, because guessing wrong is what makes Thai come back as Korean.
     onHeard: (heard) =>
       process.stdout.write(`   [${heard.language} · ถอดความ ${since(releasedAt)}]\n`),
   }),
@@ -153,7 +156,6 @@ process.stdout.write(
     `Model    ${modelPath}\n` +
     `Language ${language}\n` +
     `Key      ${key}\n` +
-    `Mic      ${device ?? 'whatever macOS calls default'}\n` +
     (keepRecordingsIn === undefined ? '' : `Keeping  ${keepRecordingsIn}\n`) +
     `\n` +
     `Hold the key, speak, release. Ctrl-C to stop.\n` +

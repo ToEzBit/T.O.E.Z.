@@ -59,35 +59,39 @@ Hold Right ⌘, speak Thai or English or both, release. T.O.E.Z. shows what it
 heard, and nothing answers: the Engine and the Voice are stand-ins here, because
 the only question this surface asks is whether it heard the Owner right.
 
-The knobs, for finding out what the Owner's own voice prefers:
+It listens in **Thai** unless told otherwise, and it does not try to work the
+language out for itself — see below.
 
-| Variable          | Default              | For                                          |
-| ----------------- | -------------------- | -------------------------------------------- |
-| `TOEZ_MIC`        | the macOS default    | Choosing which microphone, by its name        |
-| `TOEZ_LANGUAGE`   | `auto`               | Pinning to `th` or `en` instead of guessing   |
-| `TOEZ_MODEL`      | large-v3-turbo       | Comparing another ggml model                  |
-| `TOEZ_KEY`        | `MetaRight`          | Holding a different key                       |
-| `TOEZ_KEEP_AUDIO` | off — nothing kept   | Keeping recordings in a directory, to listen to |
+| Variable          | Default            | For                                             |
+| ----------------- | ------------------ | ----------------------------------------------- |
+| `TOEZ_LANGUAGE`   | `th`               | An English session (`en`), or guessing (`auto`) |
+| `TOEZ_MODEL`      | large-v3-turbo     | Comparing another ggml model                    |
+| `TOEZ_KEY`        | `MetaRight`        | Holding a different key                         |
+| `TOEZ_KEEP_AUDIO` | off — nothing kept | Keeping recordings in a directory, to listen to |
 
-**`TOEZ_MIC` first, before blaming the model.** Whichever device macOS calls
-default may be a Bluetooth headset, and a headset acting as a microphone drops
-to call quality — narrow and 24 kHz. Whisper hears the sounds and then guesses
-at the language: "สวัสดีครับ" through AirPods came back as Korean
-(`하루, 사와디, 콜압`), which is the right *sounds* written in the wrong
-alphabet. Through the built-in microphone it is a different question entirely.
-
-```sh
-ffmpeg -f avfoundation -list_devices true -i ""   # names them all
-TOEZ_MIC='MacBook Pro Microphone' pnpm listen
-```
+The microphone is whatever macOS calls default, always. Pick it in Sound
+settings; T.O.E.Z. follows.
 
 `TOEZ_KEEP_AUDIO=/tmp/toez-audio` is how a wrong transcript gets settled: a bad
 microphone and a misheard word are identical on screen and obvious in the ear.
 Recordings are deleted the moment they are transcribed unless this is set.
 
-`auto` lets Whisper decide per utterance, which is the honest default for an
-Owner who mixes languages. Each line reports what it decided, so a run of
-`pnpm listen` is evidence rather than a feeling.
+## Why the language is chosen and not detected
+
+Ask Whisper to guess, and it guesses once for the whole recording from the first
+thirty seconds — which on two seconds through a Bluetooth headset is almost
+nothing to go on. "สวัสดีครับ" came back as `하루, 사와디, 콜압`, reported as
+Korean. `사와디` is *sawadi*: the sounds were heard correctly and written in the
+wrong alphabet.
+
+So Thai is the default and **ADR-0005** has the reasoning. Thai decoding keeps
+English words inside a Thai sentence in Latin script, so "ไปแก้ bug ในโปรเจค X"
+is unaffected; what needs saying beforehand is a session of English only, with
+`TOEZ_LANGUAGE=en`.
+
+Each line still reports the language, so a run is evidence rather than a
+feeling. With a language chosen it just confirms what was asked for; under
+`auto` it is the whole story.
 
 ## Which model
 

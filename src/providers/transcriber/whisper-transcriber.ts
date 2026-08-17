@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import type { Transcriber } from '../../core/ports/transcriber.ts'
 import type { Utterance } from '../../core/utterance.ts'
-import { Microphone, type MicrophoneOptions } from './microphone.ts'
+import { Microphone } from './microphone.ts'
 import { Whisper, type Heard, type WhisperOptions } from './whisper.ts'
 
 /**
@@ -15,9 +15,7 @@ import { Whisper, type Heard, type WhisperOptions } from './whisper.ts'
  * Owner says is kept as audio — the Transcript (a later ticket) keeps words.
  */
 
-export interface WhisperTranscriberOptions
-  extends WhisperOptions,
-    MicrophoneOptions {
+export interface WhisperTranscriberOptions extends WhisperOptions {
   /**
    * Where to keep each recording instead of deleting it. Off by default: what
    * the Owner says is not kept as audio. Turned on when a transcript comes back
@@ -48,7 +46,7 @@ export class WhisperTranscriber implements Transcriber {
   #turn: Turn | undefined
 
   constructor(options: WhisperTranscriberOptions) {
-    this.#microphone = new Microphone(options)
+    this.#microphone = new Microphone()
     this.#whisper = new Whisper(options)
     this.#keepRecordingsIn = options.keepRecordingsIn
     this.#onListening = options.onListening

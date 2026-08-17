@@ -12,14 +12,17 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
  */
 
 /**
- * ffmpeg's name for "whatever the Owner has chosen as their input device".
+ * Whatever macOS calls the default input, always — the Owner picks their
+ * microphone where they already pick it, in Sound settings, and T.O.E.Z.
+ * follows.
  *
- * Worth overriding more often than it sounds. Whichever device macOS calls
- * default can be a Bluetooth headset, and a headset acting as a microphone
- * drops to call quality — narrow, 24 kHz, and enough to leave Whisper guessing
- * at the language. The built-in microphone is usually the better ears.
+ * That is usually AirPods, which as a microphone drop to call quality: 24 kHz
+ * over Bluetooth against 48 from the built-in one. Whisper on that audio can
+ * hear the sounds and still not place the language — which is why the language
+ * is chosen rather than detected (ADR-0005), instead of the Owner being asked
+ * to change headphones.
  */
-const DEFAULT_INPUT = 'default'
+const INPUT_DEVICE = ':default'
 
 /**
  * How often ffmpeg reports progress. The first report is what tells us the
@@ -28,22 +31,8 @@ const DEFAULT_INPUT = 'default'
  */
 const PROGRESS_PERIOD_SECONDS = '0.1'
 
-export interface MicrophoneOptions {
-  /**
-   * Which input device to record from, by the name macOS lists it under —
-   * `MacBook Pro Microphone`, say. Defaults to whichever one macOS calls
-   * default. `ffmpeg -f avfoundation -list_devices true -i ""` names them all.
-   */
-  readonly device?: string
-}
-
 export class Microphone {
-  readonly #device: string
   #recording: Recording | undefined
-
-  constructor(options: MicrophoneOptions = {}) {
-    this.#device = options.device ?? DEFAULT_INPUT
-  }
 
   /**
    * Opens the microphone and records into `path`. Resolves only once audio is
@@ -55,7 +44,7 @@ export class Microphone {
     if (this.#recording !== undefined) {
       throw new Error('The microphone is already open.')
     }
-    const recording = new Recording(path, this.#device)
+    const recording = new Recording(path)
     this.#recording = recording
     try {
       await recording.untilLive()
@@ -83,13 +72,12 @@ class Recording {
   readonly #exited: Promise<number | null>
   #complaints = ''
 
-  constructor(path: string, device: string) {
+  constructor(path: string) {
     this.#ffmpeg = spawn('ffmpeg', [
       '-hide_banner',
       '-loglevel', 'error',
       '-f', 'avfoundation',
-      // The leading colon is avfoundation's "no video, this audio device".
-      '-i', `:${device}`,
+      '-i', INPUT_DEVICE,
       '-ar', '16000',
       '-ac', '1',
       '-c:a', 'pcm_s16le',

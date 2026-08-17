@@ -63,7 +63,7 @@ One seam: the Session orchestrator. Tests feed it events and assert the effects 
 
 Three other files are in the fast suite, and none of them mocks anything: `workspace.test.ts` drives the real Workspace against a temp directory, and `subscription-auth.test.ts` checks a promise ADR-0002 makes about the whole repository rather than about any one module. What a provider actually does belongs in `*.integration.test.ts`, against the real provider — a fake Engine can only prove what it was told to say, and a fake Transcriber can only prove what it was told it heard.
 
-Some things no test can settle. Whether Whisper hears the *Owner* correctly is answered by the Owner on `pnpm listen`; `ears.integration.test.ts` puts macOS's own voices through the real whisper.cpp, which holds the wiring honest and is a much easier thing to hear. Which model to run is still open for the same reason — ADR-0004.
+Some things no test can settle. Whether Whisper hears the *Owner* correctly is answered by the Owner on `pnpm listen`; `ears.integration.test.ts` puts macOS's own voices through the real whisper.cpp, which holds the wiring honest and is a much easier thing to hear. Both open questions about the ears were settled that way and not by a test: which model to run (ADR-0004), and that the language is chosen rather than detected (ADR-0005).
 
 ## Agent skills
 

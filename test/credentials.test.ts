@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -7,31 +7,39 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 /**
- * Two credentials exist in this project and neither may ever be written down in
- * it: the Owner's Claude subscription, which ADR-0002 keeps as an OAuth login
- * and never as an API key, and the MiniMax key the Voice speaks through
- * (ADR-0003), which is a real key and therefore lives in the environment.
+ * Two credentials exist in this project, and they are not kept the same way.
  *
- * That is a promise about the whole repository rather than about any one
- * module, so it is checked by reading the repository. What the Engine does with
- * the environment it hands on is `subscription-auth.test.ts`.
+ * The Claude subscription is not a key at all, and ADR-0002 says no API key
+ * "exists anywhere in this project" — so that one is looked for in every file
+ * on the disk, `.env` included. There is nowhere it would be acceptable.
  *
- * Every file git would carry, and no others: `.env` sits in this directory and
- * is deliberately ignored, so it is not part of the repository and finding a
- * key in it is not a failure. Untracked files that are *not* ignored count,
- * because they are one `git add .` from being carried.
+ * The MiniMax key is a real key and has to live somewhere (ADR-0003). It lives
+ * in `.env`, which is git-ignored on purpose, so it is looked for in the files
+ * git would carry: tracked ones, and untracked ones that are not ignored and so
+ * are one `git add .` from being carried.
+ *
+ * Both are promises about the whole repository rather than about any module,
+ * which is why they are checked by reading it. What the Engine does with the
+ * environment it hands on is `subscription-auth.test.ts`.
  */
 describe('credentials', () => {
-  it('are nowhere in this repository', async () => {
+  it('has no Anthropic API key anywhere in this project, .env included', async () => {
     const offenders: string[] = []
 
-    for (const file of await repositoryFiles()) {
+    for await (const file of everyFile()) {
       if (ALLOWED_TO_WRITE_ONE_DOWN.has(file)) continue
+      offenders.push(...(await leaksIn(file, ANTHROPIC)))
+    }
 
-      const contents = await readFile(file, 'utf8').catch(() => '')
-      for (const { what, looksLike } of LEAKS) {
-        if (looksLike.test(contents)) offenders.push(`${file}: ${what}`)
-      }
+    expect(offenders).toEqual([])
+  })
+
+  it('has no MiniMax key in any file git would carry', async () => {
+    const offenders: string[] = []
+
+    for (const file of await filesGitWouldCarry()) {
+      if (ALLOWED_TO_WRITE_ONE_DOWN.has(file)) continue
+      offenders.push(...(await leaksIn(file, MINIMAX)))
     }
 
     expect(offenders).toEqual([])
@@ -49,7 +57,7 @@ const ALLOWED_TO_WRITE_ONE_DOWN = new Set([
   fileURLToPath(new URL('subscription-auth.test.ts', import.meta.url)),
 ])
 
-const LEAKS = [
+const ANTHROPIC = [
   {
     what: 'assigns an Anthropic credential',
     // An assignment or a literal key — not the bare names, which
@@ -60,6 +68,9 @@ const LEAKS = [
     what: 'contains something shaped like an Anthropic API key',
     looksLike: /sk-ant-[a-z]/,
   },
+] as const
+
+const MINIMAX = [
   {
     what: 'assigns the MiniMax key',
     // Long enough to be a key rather than the `MINIMAX_API_KEY=...` that
@@ -74,15 +85,37 @@ const LEAKS = [
   },
 ] as const
 
+interface Leak {
+  readonly what: string
+  readonly looksLike: RegExp
+}
+
+async function leaksIn(file: string, leaks: readonly Leak[]): Promise<string[]> {
+  const contents = await readFile(file, 'utf8').catch(() => '')
+  return leaks
+    .filter((leak) => leak.looksLike.test(contents))
+    .map((leak) => `${file}: ${leak.what}`)
+}
+
 const run = promisify(execFile)
 const REPO = fileURLToPath(new URL('..', import.meta.url))
+const NOT_OURS = new Set(['node_modules', '.git', 'out', 'dist', 'coverage', '.vite'])
+
+/** Every file on the disk that is this project's, so nothing can hide in a corner. */
+async function* everyFile(directory: string = REPO): AsyncIterable<string> {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (NOT_OURS.has(entry.name)) continue
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) yield* everyFile(path)
+    else if (entry.isFile()) yield path
+  }
+}
 
 /**
- * Every file this repository would carry, asked of git rather than of the
- * directory — which is the difference between a secret that is in the project
- * and a secret that is merely on this machine.
+ * Asked of git rather than of the directory, which is the difference between a
+ * secret that is in the repository and one that is merely on this machine.
  */
-async function repositoryFiles(): Promise<string[]> {
+async function filesGitWouldCarry(): Promise<string[]> {
   const { stdout } = await run(
     'git',
     ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],

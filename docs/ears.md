@@ -59,12 +59,31 @@ Hold Right ⌘, speak Thai or English or both, release. T.O.E.Z. shows what it
 heard, and nothing answers: the Engine and the Voice are stand-ins here, because
 the only question this surface asks is whether it heard the Owner right.
 
-Two knobs, for finding out what the Owner's own voice prefers:
+The knobs, for finding out what the Owner's own voice prefers:
 
-| Variable        | Default             | For                                        |
-| --------------- | ------------------- | ------------------------------------------ |
-| `TOEZ_MODEL`    | large-v3-turbo      | Comparing another ggml model                |
-| `TOEZ_LANGUAGE` | `auto`              | Pinning to `th` or `en` instead of guessing |
+| Variable          | Default              | For                                          |
+| ----------------- | -------------------- | -------------------------------------------- |
+| `TOEZ_MIC`        | the macOS default    | Choosing which microphone, by its name        |
+| `TOEZ_LANGUAGE`   | `auto`               | Pinning to `th` or `en` instead of guessing   |
+| `TOEZ_MODEL`      | large-v3-turbo       | Comparing another ggml model                  |
+| `TOEZ_KEY`        | `MetaRight`          | Holding a different key                       |
+| `TOEZ_KEEP_AUDIO` | off — nothing kept   | Keeping recordings in a directory, to listen to |
+
+**`TOEZ_MIC` first, before blaming the model.** Whichever device macOS calls
+default may be a Bluetooth headset, and a headset acting as a microphone drops
+to call quality — narrow and 24 kHz. Whisper hears the sounds and then guesses
+at the language: "สวัสดีครับ" through AirPods came back as Korean
+(`하루, 사와디, 콜압`), which is the right *sounds* written in the wrong
+alphabet. Through the built-in microphone it is a different question entirely.
+
+```sh
+ffmpeg -f avfoundation -list_devices true -i ""   # names them all
+TOEZ_MIC='MacBook Pro Microphone' pnpm listen
+```
+
+`TOEZ_KEEP_AUDIO=/tmp/toez-audio` is how a wrong transcript gets settled: a bad
+microphone and a misheard word are identical on screen and obvious in the ear.
+Recordings are deleted the moment they are transcribed unless this is set.
 
 `auto` lets Whisper decide per utterance, which is the honest default for an
 Owner who mixes languages. Each line reports what it decided, so a run of

@@ -34,11 +34,17 @@ import { MuteVoice } from './mute-voice.ts'
  * docs/ears.md.
  */
 
-// Three knobs, because which of them the Owner's own voice and hands prefer is
-// exactly what this surface is for finding out. Settings proper arrive in T11.
+// The knobs, because which of them the Owner's own voice, ears and hands prefer
+// is exactly what this surface is for finding out. Settings proper arrive in
+// T11.
 const modelPath = process.env.TOEZ_MODEL ?? defaultModelPath
 const language = process.env.TOEZ_LANGUAGE ?? 'auto'
 const key = process.env.TOEZ_KEY ?? defaultPushToTalkKey
+const device = process.env.TOEZ_MIC
+// Recordings are deleted as soon as they are transcribed unless this says where
+// to keep them. Set it when a transcript comes back wrong: a bad microphone and
+// a misheard word look identical in text and quite different in the ear.
+const keepRecordingsIn = process.env.TOEZ_KEEP_AUDIO
 
 // A missing model otherwise surfaces as a whisper-cli failure three quarters of
 // the way through the Owner's first sentence.
@@ -63,6 +69,8 @@ const session = new SessionRuntime({
     modelPath,
     vadModelPath: defaultVadModelPath,
     language,
+    ...(device === undefined ? {} : { device }),
+    ...(keepRecordingsIn === undefined ? {} : { keepRecordingsIn }),
     // The microphone takes about half a second to open, so this — not the
     // keypress — is the moment the Owner can start talking.
     onListening: () => {
@@ -144,7 +152,10 @@ process.stdout.write(
   `T.O.E.Z. — ears only\n` +
     `Model    ${modelPath}\n` +
     `Language ${language}\n` +
-    `Key      ${key}\n\n` +
+    `Key      ${key}\n` +
+    `Mic      ${device ?? 'whatever macOS calls default'}\n` +
+    (keepRecordingsIn === undefined ? '' : `Keeping  ${keepRecordingsIn}\n`) +
+    `\n` +
     `Hold the key, speak, release. Ctrl-C to stop.\n` +
     `Nothing happening? macOS needs Electron — not the terminal — ticked under\n` +
     `System Settings › Privacy & Security › Accessibility. See docs/ears.md.\n`,

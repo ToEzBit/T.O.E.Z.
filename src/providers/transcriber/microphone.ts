@@ -11,8 +11,15 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
  * ffmpeg is not bundled. `brew install ffmpeg` — see docs/ears.md.
  */
 
-/** ffmpeg's name for "whatever the Owner has chosen as their input device". */
-const DEFAULT_INPUT = ':default'
+/**
+ * ffmpeg's name for "whatever the Owner has chosen as their input device".
+ *
+ * Worth overriding more often than it sounds. Whichever device macOS calls
+ * default can be a Bluetooth headset, and a headset acting as a microphone
+ * drops to call quality — narrow, 24 kHz, and enough to leave Whisper guessing
+ * at the language. The built-in microphone is usually the better ears.
+ */
+const DEFAULT_INPUT = 'default'
 
 /**
  * How often ffmpeg reports progress. The first report is what tells us the
@@ -21,8 +28,22 @@ const DEFAULT_INPUT = ':default'
  */
 const PROGRESS_PERIOD_SECONDS = '0.1'
 
+export interface MicrophoneOptions {
+  /**
+   * Which input device to record from, by the name macOS lists it under —
+   * `MacBook Pro Microphone`, say. Defaults to whichever one macOS calls
+   * default. `ffmpeg -f avfoundation -list_devices true -i ""` names them all.
+   */
+  readonly device?: string
+}
+
 export class Microphone {
+  readonly #device: string
   #recording: Recording | undefined
+
+  constructor(options: MicrophoneOptions = {}) {
+    this.#device = options.device ?? DEFAULT_INPUT
+  }
 
   /**
    * Opens the microphone and records into `path`. Resolves only once audio is
@@ -34,7 +55,7 @@ export class Microphone {
     if (this.#recording !== undefined) {
       throw new Error('The microphone is already open.')
     }
-    const recording = new Recording(path)
+    const recording = new Recording(path, this.#device)
     this.#recording = recording
     try {
       await recording.untilLive()
@@ -62,12 +83,13 @@ class Recording {
   readonly #exited: Promise<number | null>
   #complaints = ''
 
-  constructor(path: string) {
+  constructor(path: string, device: string) {
     this.#ffmpeg = spawn('ffmpeg', [
       '-hide_banner',
       '-loglevel', 'error',
       '-f', 'avfoundation',
-      '-i', DEFAULT_INPUT,
+      // The leading colon is avfoundation's "no video, this audio device".
+      '-i', `:${device}`,
       '-ar', '16000',
       '-ac', '1',
       '-c:a', 'pcm_s16le',

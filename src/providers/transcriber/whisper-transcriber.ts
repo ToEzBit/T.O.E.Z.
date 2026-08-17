@@ -1,10 +1,10 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { copyFile, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { Transcriber } from '../../core/ports/transcriber.ts'
 import type { Utterance } from '../../core/utterance.ts'
-import { Microphone } from './microphone.ts'
+import { Microphone, type MicrophoneOptions } from './microphone.ts'
 import { Whisper, type Heard, type WhisperOptions } from './whisper.ts'
 
 /**
@@ -15,7 +15,16 @@ import { Whisper, type Heard, type WhisperOptions } from './whisper.ts'
  * Owner says is kept as audio — the Transcript (a later ticket) keeps words.
  */
 
-export interface WhisperTranscriberOptions extends WhisperOptions {
+export interface WhisperTranscriberOptions
+  extends WhisperOptions,
+    MicrophoneOptions {
+  /**
+   * Where to keep each recording instead of deleting it. Off by default: what
+   * the Owner says is not kept as audio. Turned on when a transcript comes back
+   * wrong and the only way to tell a misheard word from a bad microphone is to
+   * listen to what was actually recorded.
+   */
+  readonly keepRecordingsIn?: string
   /**
    * Told the moment the microphone is genuinely recording — which is a good
    * half-second after the key went down. This is the Owner's cue to speak, so
@@ -31,14 +40,17 @@ export interface WhisperTranscriberOptions extends WhisperOptions {
 }
 
 export class WhisperTranscriber implements Transcriber {
-  readonly #microphone = new Microphone()
+  readonly #microphone: Microphone
   readonly #whisper: Whisper
+  readonly #keepRecordingsIn: string | undefined
   readonly #onListening: (() => void) | undefined
   readonly #onHeard: ((heard: Heard) => void) | undefined
   #turn: Turn | undefined
 
   constructor(options: WhisperTranscriberOptions) {
+    this.#microphone = new Microphone(options)
     this.#whisper = new Whisper(options)
+    this.#keepRecordingsIn = options.keepRecordingsIn
     this.#onListening = options.onListening
     this.#onHeard = options.onHeard
   }
@@ -77,11 +89,19 @@ export class WhisperTranscriber implements Transcriber {
     try {
       await this.#microphone.close()
       const heard = await this.#whisper.transcribe(turn.wavPath)
+      await this.#keep(turn)
       this.#onHeard?.(heard)
       return { text: heard.text }
     } finally {
       await rm(turn.directory, { recursive: true, force: true })
     }
+  }
+
+  /** Saves the recording under the moment it was made, if asked to. */
+  async #keep(turn: Turn): Promise<void> {
+    if (this.#keepRecordingsIn === undefined) return
+    const stamp = new Date().toISOString().replaceAll(':', '-')
+    await copyFile(turn.wavPath, join(this.#keepRecordingsIn, `${stamp}.wav`))
   }
 }
 

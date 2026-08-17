@@ -28,7 +28,7 @@
  * — the Persona is told to write short sentences, to be heard — while Thai,
  * which will never reach one, still starts within a sentence or two.
  */
-export const PHRASE_LIMIT = 80
+const PHRASE_LIMIT = 80
 
 /**
  * What ends a sentence, when one is written in a language that ends them.
@@ -52,12 +52,12 @@ export interface Phrases {
  * next chunk. Pure and total: the same text always breaks the same way, and
  * text that cannot be broken yet comes straight back as `rest`.
  */
-export function takePhrases(text: string, limit: number = PHRASE_LIMIT): Phrases {
+export function takePhrases(text: string): Phrases {
   const phrases: string[] = []
   let rest = text
 
   for (;;) {
-    const cut = cutPoint(rest, limit)
+    const cut = cutPoint(rest)
     if (cut === undefined) break
     const phrase = rest.slice(0, cut).trim()
     rest = rest.slice(cut).trimStart()
@@ -73,12 +73,12 @@ export function takePhrases(text: string, limit: number = PHRASE_LIMIT): Phrases
  * Where to break, or `undefined` to wait for more. Always past the first
  * character, so that taking a phrase always makes progress.
  */
-function cutPoint(text: string, limit: number): number | undefined {
+function cutPoint(text: string): number | undefined {
   const sentence = endOfSentence(text)
   if (sentence !== undefined) return sentence
   // Below the limit there is no hurry: waiting may yet turn this into a whole
   // sentence, which is a better thing to speak than part of one.
-  if (text.trim().length <= limit) return undefined
+  if (text.trim().length <= PHRASE_LIMIT) return undefined
   return endOfPhrase(text)
 }
 

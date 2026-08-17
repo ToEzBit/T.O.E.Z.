@@ -51,6 +51,7 @@ export class MinimaxSocket {
   readonly #arrived: Reply[] = []
   #waiting: Waiting | undefined
   #ended: Error | undefined
+  #speaking = false
 
   private constructor(ws: WebSocket) {
     this.#ws = ws
@@ -131,15 +132,28 @@ export class MinimaxSocket {
    * synthesised — not when it has been heard, which is the Speaker's business.
    */
   async say(text: string, onAudio: (audio: Buffer) => void): Promise<void> {
-    this.#send({ event: 'task_continue', text })
+    if (this.#speaking) {
+      throw new Error('This MiniMax connection is already saying something.')
+    }
+    // Anything that arrived after the last phrase was finished belongs to that
+    // phrase, and nobody is listening for it any more. Handing it on now would
+    // put the tail of the last sentence in front of this one.
+    this.#arrived.length = 0
+    this.#speaking = true
 
-    for (;;) {
-      const reply = await this.#next()
-      const audio = reply.data?.audio
-      if (audio !== undefined && audio !== '') onAudio(Buffer.from(audio, 'hex'))
-      // `task_finished` is MiniMax ending the whole task rather than this text;
-      // either way there is no more audio for what was asked.
-      if (reply.is_final === true || reply.event === 'task_finished') return
+    try {
+      this.#send({ event: 'task_continue', text })
+
+      for (;;) {
+        const reply = await this.#next()
+        const audio = reply.data?.audio
+        if (audio !== undefined && audio !== '') onAudio(Buffer.from(audio, 'hex'))
+        // `task_finished` is MiniMax ending the whole task rather than this
+        // text; either way there is no more audio for what was asked.
+        if (reply.is_final === true || reply.event === 'task_finished') return
+      }
+    } finally {
+      this.#speaking = false
     }
   }
 

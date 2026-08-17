@@ -1,5 +1,6 @@
 import type { EngineRequest, ReplyChunk } from '../ports/engine.ts'
 import type { SpeakRequest } from '../ports/voice.ts'
+import type { Utterance } from '../utterance.ts'
 
 /**
  * Everything a Session can ask the outside world to do. These are plain data —
@@ -21,6 +22,12 @@ export type SessionEffect =
   | { readonly type: 'start-capture' }
   /** Close the microphone and find out what was said. */
   | { readonly type: 'stop-capture' }
+  /**
+   * Put on screen what the Owner was heard to say. Separate from the Engine
+   * call so the Owner can see they were heard correctly while the reply is
+   * still being generated — and can tell a misheard word from a wrong answer.
+   */
+  | { readonly type: 'show-utterance'; readonly utterance: Utterance }
   /** Hand the Owner's utterance to the Engine. */
   | { readonly type: 'send-to-engine'; readonly request: EngineRequest }
   /**

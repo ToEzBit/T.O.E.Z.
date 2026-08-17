@@ -17,12 +17,15 @@ export class CannedTranscriber implements Transcriber {
     this.#canned = new Script('canned Utterances', canned)
   }
 
-  startCapture(): Promise<void> {
+  async startCapture(): Promise<void> {
     if (this.#capturing) {
       throw new Error('CannedTranscriber was already capturing.')
     }
+    // The real microphone takes about half a second to open and is not
+    // recording until it has. Opening instantly here would hide every bug that
+    // lives in that gap, so this one also becomes ready a turn late.
+    await Promise.resolve()
     this.#capturing = true
-    return Promise.resolve()
   }
 
   stopCapture(): Promise<Utterance> {

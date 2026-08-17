@@ -27,6 +27,7 @@ describe('the Session orchestrator', () => {
     expect(effects).toEqual<SessionEffect[]>([
       { type: 'start-capture' },
       { type: 'stop-capture' },
+      { type: 'show-utterance', utterance: { text: 'ทดสอบหน่อย' } },
       { type: 'send-to-engine', request: { utterance: { text: 'ทดสอบหน่อย' } } },
       { type: 'show-reply-chunk', chunk: { text: 'สวัสดี' } },
       { type: 'show-reply-chunk', chunk: { text: 'ครับ เจ้านาย' } },
@@ -83,6 +84,73 @@ describe('the Session orchestrator', () => {
     expect(voice.spoken).toEqual([
       { text: 'Good evening.' },
       { text: 'Nine o’clock.' },
+    ])
+  })
+
+  it('lets a mis-tap of the key end the turn without waking the Engine', async () => {
+    // Right ⌘ is a key the Owner also presses for other reasons. A tap that
+    // caught no words must cost nothing: no Engine call, no speech, no Panel
+    // showing an empty line where an Utterance should be.
+    const engine = new ScriptedEngine([])
+    const transcriber = new CannedTranscriber(['   '])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(effects).toEqual<SessionEffect[]>([
+      { type: 'start-capture' },
+      { type: 'stop-capture' },
+    ])
+    expect(engine.requests).toEqual([])
+    expect(voice.spoken).toEqual([])
+  })
+
+  it('is listening again straight after a mis-tap', async () => {
+    // The proof that a mis-tap ended the turn rather than stranding it: the very
+    // next press is heard.
+    const engine = new ScriptedEngine([['Good evening.']])
+    const transcriber = new CannedTranscriber(['', 'Hello'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(engine.requests).toEqual([{ utterance: { text: 'Hello' } }])
+    expect(voice.spoken).toEqual([{ text: 'Good evening.' }])
+  })
+
+  it('survives a tap too quick for the microphone to have opened', async () => {
+    // The Owner lets go when they let go, not when the Session is ready — and
+    // the microphone takes about half a second to open. Both events are sent
+    // here without waiting for the first, which is how they really arrive.
+    const engine = new ScriptedEngine([['Good evening.']])
+    const transcriber = new CannedTranscriber(['Hello'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await Promise.all([
+      session.dispatch({ type: 'hotkey-pressed' }),
+      session.dispatch({ type: 'hotkey-released' }),
+    ])
+
+    // The microphone is opened and closed in that order, once each: the release
+    // waited for the press rather than closing a microphone still opening.
+    expect(effects.map((effect) => effect.type)).toEqual([
+      'start-capture',
+      'stop-capture',
+      'show-utterance',
+      'send-to-engine',
+      'show-reply-chunk',
+      'speak',
     ])
   })
 

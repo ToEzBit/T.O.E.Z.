@@ -62,14 +62,22 @@ export function handle(state: SessionState, event: SessionEvent): SessionStep {
         effects: [{ type: 'stop-capture' }],
       }
 
-    case 'utterance-transcribed':
+    case 'utterance-transcribed': {
       if (state.phase !== 'thinking') return unchanged(state)
+      // Right ⌘ is a key the Owner presses for other reasons too, and silence
+      // transcribes to nothing. A turn with no words in it ends here rather
+      // than spending subscription tokens asking the Engine about silence.
+      if (event.utterance.text.trim() === '') {
+        return { state: idleSessionState, effects: [] }
+      }
       return {
         state,
         effects: [
+          { type: 'show-utterance', utterance: event.utterance },
           { type: 'send-to-engine', request: { utterance: event.utterance } },
         ],
       }
+    }
 
     case 'reply-chunk-received':
       if (state.phase !== 'thinking') return unchanged(state)

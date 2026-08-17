@@ -62,6 +62,12 @@ session.onEffect((effect) => {
       // opening and closing here.
       break
 
+    case 'show-utterance':
+      // The Owner typed it; it is already on the screen above. `pnpm listen`
+      // is where this effect earns its keep, because there the words come from
+      // a microphone and the Owner has no other way to check they were heard.
+      break
+
     default:
       assertNever(effect, 'SessionEffect')
   }

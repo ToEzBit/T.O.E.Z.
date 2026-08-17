@@ -4,11 +4,14 @@ Personal Jarvis-style voice agent for macOS. Start with [DESIGN.md](./DESIGN.md)
 
 ## Commands
 
-Package manager is **pnpm**. esbuild needs its install script, which pnpm gates — `pnpm.onlyBuiltDependencies` in `package.json` lists it. Electron needs no entry: since v43 it has no postinstall and fetches its binary the first time you run it, so a fresh clone's first `pnpm dev` prints `Downloading Electron binary...` and then starts.
+Package manager is **pnpm**. esbuild needs its install script, which pnpm gates — `pnpm.onlyBuiltDependencies` in `package.json` lists it. `uiohook-napi` is listed under `pnpm.ignoredBuiltDependencies` instead: it ships a `darwin-arm64` prebuild that loads without its build script ever running, so gating it costs nothing and compiling it would need toolchain nobody has asked for. Electron needs no entry: since v43 it has no postinstall and fetches its binary the first time you run it, so a fresh clone's first `pnpm dev` prints `Downloading Electron binary...` and then starts.
+
+Three things are not npm's to install: `ffmpeg` and `whisper-cpp`, from Homebrew, and two Whisper models — `scripts/fetch-ears-models.sh` downloads the multilingual one, `scripts/build-thonburian-model.sh` converts the Thai one. Two, because the language decides which model hears it (ADR-0006). Only the ears need any of this. See [docs/ears.md](./docs/ears.md).
 
 | Command                | Does                                                             |
 | ---------------------- | ---------------------------------------------------------------- |
 | `pnpm ask`             | One real Session from the keyboard — see below                    |
+| `pnpm listen`          | The ears on their own: hold Right ⌘ and read the Utterance        |
 | `pnpm dev`             | Runs the app with reload                                          |
 | `pnpm build`           | Bundles the main process into `out/`                              |
 | `pnpm start`           | Runs the built bundle                                             |
@@ -25,9 +28,18 @@ Electron. The `--disable-warning` flag on it only silences Node's note that this
 package has no `"type": "module"`; adding one would change how `out/main` is
 loaded, which is Electron's business.
 
-It talks to the real Engine on the Owner's subscription, so it spends real
-tokens. So does `pnpm test:integration`, which needs `claude login` to have
-happened. `pnpm test` never does.
+`pnpm listen` is the same idea run by Electron instead, and not for anything
+Electron provides. `uiohook-napi`'s event tap delivers one event on Node 26 and
+then goes deaf — key-down arrives, key-up never does — while on Electron's own
+Node 24 it runs indefinitely. Electron strips the types too, so no bundler
+enters here either. The consequence to remember is that macOS grants the
+microphone and Accessibility to *Electron* under `pnpm listen`, not to the
+terminal; docs/ears.md says which file to tick.
+
+`pnpm ask` talks to the real Engine on the Owner's subscription, so it spends
+real tokens. So does `pnpm test:integration`, which needs `claude login` to have
+happened. `pnpm listen` never does — its Engine and its Voice are
+stand-ins with nothing to say. `pnpm test` never does either.
 
 ## Layout
 
@@ -36,16 +48,22 @@ happened. `pnpm test` never does.
   - `session/` — `orchestrator.ts` is pure (`state + event → state + effects`); `session-runtime.ts` runs those effects against the ports and feeds results back as events.
   - `workspace/` — `~/.toez`: the Persona now, Memory and Transcripts later. Opening it creates it, so first run needs no setup.
   - `testing/` — one fake per port, used by the tests.
-- `src/providers/` — the real things behind the ports. Node, not Electron, so they run under `pnpm ask` and the integration tests. `engine/` holds the Agent SDK Engine, which ADR-0002 requires stay behind its own boundary.
-- `src/dev/` — the keyboard-driven Session and the stand-ins it needs. Not shipped; deleted once there are real ears and a real mouth.
+- `src/providers/` — the real things behind the ports. Node, not Electron, so they run under `pnpm ask`, `pnpm listen` and the integration tests.
+  - `engine/` — the Agent SDK Engine, which ADR-0002 requires stay behind its own boundary.
+  - `transcriber/` — the ears: ffmpeg records, whisper.cpp reads. Both are subprocesses, so nothing here has to be rebuilt against Electron's ABI.
+  - `hotkey/` — Right ⌘, watched system-wide. Not a port and not behind one: ports are what the Session *calls*, and this only tells it something happened, which is what a SessionEvent is for. The three fakeable seams stay three.
+- `src/dev/` — the keyboard-driven Session, the ears on their own, and the stand-ins they need. Not shipped; deleted once there are real ears and a real mouth in the app itself.
 - `src/main/` — the Electron main process: menu bar presence and, later, the Panel.
 - `resources/` — menu bar icons. macOS template images: black plus alpha only, `@2x` alongside.
+- `scripts/` — one-off setup a person runs by hand. `fetch-ears-models.sh` downloads the model every language but Thai listens with; `build-thonburian-model.sh` converts the one Thai listens with (ADR-0006).
 
 ## Testing
 
 One seam: the Session orchestrator. Tests feed it events and assert the effects that come out — never internal state, never provider internals. New behaviour means a new event or effect variant, not a new mock. See `test/session-orchestrator.test.ts` for the pattern.
 
-Three other files are in the fast suite, and none of them mocks anything: `workspace.test.ts` drives the real Workspace against a temp directory, and `subscription-auth.test.ts` checks a promise ADR-0002 makes about the whole repository rather than about any one module. What a provider actually does belongs in `*.integration.test.ts`, against the real provider — a fake Engine can only prove what it was told to say.
+Three other files are in the fast suite, and none of them mocks anything: `workspace.test.ts` drives the real Workspace against a temp directory, and `subscription-auth.test.ts` checks a promise ADR-0002 makes about the whole repository rather than about any one module. What a provider actually does belongs in `*.integration.test.ts`, against the real provider — a fake Engine can only prove what it was told to say, and a fake Transcriber can only prove what it was told it heard.
+
+Some things no test can settle. Whether Whisper hears the *Owner* correctly is answered by the Owner on `pnpm listen`; `ears.integration.test.ts` puts macOS's own voices through the real whisper.cpp, which holds the wiring honest and is a much easier thing to hear. Every open question about the ears was settled that way and not by a test: that the language is chosen rather than detected (ADR-0005), and that the chosen language picks the model (ADR-0006, which reversed ADR-0004 once there were recordings of a person rather than of macOS).
 
 ## Agent skills
 

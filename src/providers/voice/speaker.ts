@@ -125,7 +125,17 @@ export class Speaker {
             : error
         resolve()
       })
-      ffplay.once('close', () => {
+      ffplay.once('close', (code: number | null) => {
+        // A player that stopped while still the one in use took the rest of
+        // the reply down with it, silently: the pipe raises EPIPE, the clock
+        // below keeps counting, and T.O.E.Z. appears to be talking to a room
+        // that cannot hear it. `close` below ends the player on purpose, and
+        // takes it out of use first, so this does not fire for that.
+        if (this.#ffplay === ffplay) {
+          this.#failure = new Error(
+            `ffplay stopped with code ${String(code)}; nothing can be heard.`,
+          )
+        }
         resolve()
       })
     })

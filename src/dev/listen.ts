@@ -8,8 +8,9 @@ import {
   PushToTalk,
 } from '../providers/hotkey/push-to-talk.ts'
 import {
-  defaultModelPath,
   defaultVadModelPath,
+  modelPathFor,
+  thaiModelPath,
 } from '../providers/transcriber/models.ts'
 import { WhisperTranscriber } from '../providers/transcriber/whisper-transcriber.ts'
 import { MuteEngine } from './mute-engine.ts'
@@ -35,14 +36,12 @@ import { MuteVoice } from './mute-voice.ts'
  * docs/ears.md.
  */
 
-// The knobs, because which of them the Owner's own voice, ears and hands prefer
-// is exactly what this surface is for finding out. Settings proper arrive in
-// T11.
-const modelPath = process.env.TOEZ_MODEL ?? defaultModelPath
 // Thai unless told otherwise, and never detected by default. See ADR-0005: the
 // Owner speaks Thai to T.O.E.Z. through AirPods, and Whisper asked to guess at
 // two seconds of that answered Korean.
 const language = process.env.TOEZ_LANGUAGE ?? 'th'
+// The language picks the model, because no one model is best at both (ADR-0006).
+const modelPath = process.env.TOEZ_MODEL ?? modelPathFor(language)
 const key = process.env.TOEZ_KEY ?? defaultPushToTalkKey
 // Recordings are deleted as soon as they are transcribed unless this says where
 // to keep them. Set it when a transcript comes back wrong: a bad microphone and
@@ -55,7 +54,12 @@ for (const path of [modelPath, defaultVadModelPath]) {
   await access(path).catch(() => {
     process.stdout.write(
       `No model at ${path}\n` +
-        `Run scripts/fetch-ears-models.sh — see docs/ears.md.\n`,
+        (path === thaiModelPath
+          ? `Thai listens with Thonburian, which has to be built:\n` +
+            `  ./scripts/build-thonburian-model.sh\n` +
+            `Or speak another language — TOEZ_LANGUAGE=en pnpm listen.\n`
+          : `Run ./scripts/fetch-ears-models.sh\n`) +
+        `See docs/ears.md.\n`,
     )
     process.exit(1)
   })

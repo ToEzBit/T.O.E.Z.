@@ -1,5 +1,13 @@
 # Multilingual Whisper as the ears, not a Thai fine-tune
 
+> **Reversed for Thai by [ADR-0006](./0006-the-language-picks-the-model.md).**
+> Everything below was measured on macOS's synthesised voices, which every model
+> heard perfectly — so Thai could not tell them apart and English decided it.
+> The Owner's own voice, through the headset they actually use, tells them apart
+> at once, and Thonburian wins Thai three to one. The finding that Thonburian
+> cannot hear English stands, which is why there are now two models and the
+> language picks between them.
+
 ADR-0003 chose Thonburian Whisper because it is the most accurate Thai model
 available. Built and measured, both variants turn out to have forgotten English
 completely — so the ears are plain Whisper **large-v3-turbo, quantized to

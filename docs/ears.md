@@ -8,13 +8,18 @@ Everything here is on this machine. No audio leaves it, at any point (ADR-0003).
 
 ```sh
 brew install ffmpeg whisper-cpp
-./scripts/fetch-ears-models.sh
+./scripts/fetch-ears-models.sh        # large-v3-turbo + voice detection, ~575MB
+./scripts/build-thonburian-model.sh   # Thai, ~30 min, wants PyTorch
 ```
 
-That fetches Whisper large-v3-turbo and the Silero voice activity model — about
-575MB, already in ggml format, nothing to build — into `~/.toez/models`. Models
-live in the Workspace rather than in this repo because they are T.O.E.Z.'s, not
-the code's: reinstalling the app should not mean downloading them again.
+Both, because Thai and everything else are heard by different models —
+**ADR-0006**. The first is a download; the second is a conversion, because no
+ready-made ggml Thonburian exists to fetch. Skip it only if you never speak Thai
+to T.O.E.Z.
+
+Models live in `~/.toez/models` — the Workspace rather than this repo, because
+they are T.O.E.Z.'s and reinstalling the app should not mean getting them
+again.
 
 ## Two permissions macOS will not give you quietly
 
@@ -59,15 +64,15 @@ Hold Right ⌘, speak Thai or English or both, release. T.O.E.Z. shows what it
 heard, and nothing answers: the Engine and the Voice are stand-ins here, because
 the only question this surface asks is whether it heard the Owner right.
 
-It listens in **Thai** unless told otherwise, and it does not try to work the
-language out for itself — see below.
+It listens in **Thai** unless told otherwise, it does not try to work the
+language out for itself, and the language decides which model hears it.
 
-| Variable          | Default            | For                                             |
-| ----------------- | ------------------ | ----------------------------------------------- |
-| `TOEZ_LANGUAGE`   | `th`               | An English session (`en`), or guessing (`auto`) |
-| `TOEZ_MODEL`      | large-v3-turbo     | Comparing another ggml model                    |
-| `TOEZ_KEY`        | `MetaRight`        | Holding a different key                         |
-| `TOEZ_KEEP_AUDIO` | off — nothing kept | Keeping recordings in a directory, to listen to |
+| Variable          | Default              | For                                             |
+| ----------------- | -------------------- | ----------------------------------------------- |
+| `TOEZ_LANGUAGE`   | `th`                 | An English session (`en`), or guessing (`auto`) |
+| `TOEZ_MODEL`      | whichever fits above | Forcing one model regardless of language        |
+| `TOEZ_KEY`        | `MetaRight`          | Holding a different key                         |
+| `TOEZ_KEEP_AUDIO` | off — nothing kept   | Keeping recordings in a directory, to listen to |
 
 The microphone is whatever macOS calls default, always. Pick it in Sound
 settings; T.O.E.Z. follows.
@@ -95,23 +100,23 @@ feeling. With a language chosen it just confirms what was asked for; under
 
 ## Which model
 
-Not settled, and the Owner is the one who settles it. **ADR-0004 is the
-measurement**: Thai fine-tunes are exact on Thai and produce fluent nonsense on
-English, so the default is plain multilingual Whisper instead of the Thonburian
-model ADR-0003 named.
+Settled on the Owner's own voice, through the headset they actually use —
+**ADR-0006** has the four recordings.
 
-What that leaves open is whether Thonburian's better Thai is worth its total
-loss of English. To hear the difference:
+| Language | Model | Why |
+| --- | --- | --- |
+| `th` | Thonburian `whisper-th-medium-combined` | Three of four sentences exact, against one of four |
+| anything else | `large-v3-turbo` | Thonburian cannot hear English at all |
+
+English words inside Thai speech come back transliterated — `เทอร์มินัล` for
+"terminal". That is the price, and it is a readable Thai word; the multilingual
+model given the same sentence produced `เธอมินาเอา`, which is not.
+
+`TOEZ_MODEL` forces one regardless, which is how the next comparison gets made:
 
 ```sh
-./scripts/build-thonburian-model.sh            # ~30 min, wants PyTorch
-TOEZ_MODEL=~/.toez/models/ggml-whisper-th-medium-combined-q5_0.bin pnpm listen
+TOEZ_MODEL=~/.toez/models/ggml-large-v3-turbo-q5_0.bin pnpm listen
 ```
-
-Speak the same handful of sentences to each — some Thai, some English, some with
-an English word in the middle of a Thai sentence — and keep whichever is right
-more often. They can sit side by side in `~/.toez/models`; nothing has to be
-deleted to try the other.
 
 ## What to expect
 

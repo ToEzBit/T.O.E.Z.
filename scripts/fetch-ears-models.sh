@@ -2,8 +2,8 @@
 #
 # Fetches the two models T.O.E.Z. listens with, ready-made:
 #
-#   - Whisper large-v3-turbo, quantized. The one model measured to handle Thai,
-#     English and the two mixed together — see ADR-0004.
+#   - Whisper large-v3-turbo, quantized. What every language except Thai listens
+#     with; Thai has its own model (ADR-0006).
 #   - Silero voice activity detection, without which Whisper invents words out
 #     of silence.
 #
@@ -11,7 +11,8 @@
 # They land in ~/.toez/models, which is the Workspace, so they survive
 # reinstalling the app.
 #
-# To compare against a Thai fine-tune, see scripts/build-thonburian-model.sh.
+# Thai needs scripts/build-thonburian-model.sh as well — that one is a
+# conversion rather than a download, because no ready-made ggml of it exists.
 
 set -euo pipefail
 
@@ -53,5 +54,5 @@ fetch 'ggml-large-v3-turbo-q5_0.bin' \
 fetch 'ggml-silero-v5.1.2.bin' \
   "$BASE_URL/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin"
 
-printf '\nT.O.E.Z. has ears. `pnpm listen`.\n\n'
+printf '\nDone. Thai also needs ./scripts/build-thonburian-model.sh\n\n'
 ls -lh "$MODELS_DIR"

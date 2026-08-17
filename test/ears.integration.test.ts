@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Microphone } from '../src/providers/transcriber/microphone.ts'
 import {
-  defaultModelPath,
   defaultVadModelPath,
+  modelPathFor,
 } from '../src/providers/transcriber/models.ts'
 import { Whisper } from '../src/providers/transcriber/whisper.ts'
 
@@ -41,46 +41,41 @@ describe('Whisper', () => {
     await rm(directory, { recursive: true, force: true })
   })
 
-  it('hears Thai, and knows it was Thai', { timeout: 120_000 }, async () => {
+  it('hears Thai', { timeout: 120_000 }, async () => {
     const wav = await speak('Kanya', 'สวัสดีครับ วันนี้อากาศดีนะ')
 
-    const heard = await whisper().transcribe(wav)
+    const heard = await whisper('th').transcribe(wav)
 
     expect(heard.language).toBe('th')
     expect(heard.text).toContain('สวัสดี')
   })
 
-  it('hears English, and knows it was English', { timeout: 120_000 }, async () => {
-    // The one that chose the model. A Thai fine-tune fails this outright: asked
-    // this question, `whisper-th-medium-combined` answers `สวัสดีค่ะ วันนี้
-    // กฎหมายเป็นยังไงบ้าง` — fluent Thai with no relation to what was said, and
-    // reported as Thai. ADR-0004 has the measurements.
+  it('hears English, with the model English goes to', { timeout: 120_000 }, async () => {
+    // Why there are two models rather than one. Given this recording, the Thai
+    // fine-tune answers `สวัสดีค่ะ วันนี้กฎหมายเป็นยังไงบ้าง` — fluent Thai
+    // with no relation to what was said, reported as Thai. ADR-0004 measured
+    // it; ADR-0006 is why the language picks which model hears it.
     const wav = await speak('Samantha', 'Good evening. What is the weather like today?')
 
-    const heard = await whisper().transcribe(wav)
+    const heard = await whisper('en').transcribe(wav)
 
     expect(heard.language).toBe('en')
     expect(heard.text).toMatch(/weather/i)
   })
 
-  it('keeps English words in English inside a Thai sentence', { timeout: 120_000 }, async () => {
-    // "ไปแก้ bug ในโปรเจค X" is how the Owner talks. What is asserted is only
-    // that some Latin script survives, because that is the whole difference
-    // between a multilingual model and a Thai one — the Thai fine-tunes render
-    // "pnpm test" as `พี่เอ็นพี่เอ็มเทสต์`, which reaches the Engine as a wrong
-    // utterance rather than an accented one.
-    //
-    // Which English word survives is not asserted, and could not honestly be:
-    // Kanya is a Thai voice reading Latin text, so she says these with Thai
-    // phonology. A person code-switching sounds different. So this catches a
-    // model that has lost English altogether — the regression that actually
-    // happened — and says nothing about how well the rest was heard. Only the
-    // Owner on `pnpm listen` can answer that.
-    const wav = await speak('Kanya', 'ช่วยเปิด terminal แล้วรัน pnpm test ให้หน่อยครับ')
+  it('hears the Thai around an English word', { timeout: 120_000 }, async () => {
+    // "ไปแก้ bug ในโปรเจค X" is how the Owner talks, and it goes to the Thai
+    // model like any other Thai. What is asserted is the Thai, because that is
+    // what has to be right: the English word comes back transliterated —
+    // `เทอร์มินัล` for "terminal" — which ADR-0006 accepts. A Thai reader
+    // recognises that word; `เธอมินาเอา`, which is what the multilingual model
+    // made of the Owner saying it, is not a word at all.
+    const wav = await speak('Kanya', 'ช่วยเปิด terminal ให้หน่อยครับ')
 
-    const heard = await whisper().transcribe(wav)
+    const heard = await whisper('th').transcribe(wav)
 
-    expect(heard.text).toMatch(/[A-Za-z]/)
+    expect(heard.text).toContain('ช่วยเปิด')
+    expect(heard.text).toContain('ให้หน่อยครับ')
   })
 
   it('hears nothing at all in silence', { timeout: 120_000 }, async () => {
@@ -95,16 +90,17 @@ describe('Whisper', () => {
       '-t', '2', '-c:a', 'pcm_s16le', '-y', wav,
     ])
 
-    const heard = await whisper().transcribe(wav)
+    const heard = await whisper('th').transcribe(wav)
 
     expect(heard.text).toBe('')
   })
 
-  function whisper(): Whisper {
+  /** The same pairing of language to model that `pnpm listen` uses. */
+  function whisper(language: string): Whisper {
     return new Whisper({
-      modelPath: process.env.TOEZ_MODEL ?? defaultModelPath,
+      modelPath: modelPathFor(language),
       vadModelPath: defaultVadModelPath,
-      language: 'auto',
+      language,
     })
   }
 

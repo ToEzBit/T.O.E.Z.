@@ -5,14 +5,15 @@
 #
 #   ./scripts/build-thonburian-model.sh [huggingface-model]
 #
-# Not what the ears run by default. These models are exact on Thai and useless
-# on English (ADR-0004), so this exists for one purpose: letting the Owner hear
-# the Thai difference on their own voice before that trade is settled. The
-# built file is named after the model it came from, so several can sit side by
-# side in ~/.toez/models for `TOEZ_MODEL` to choose between.
+# This is what Thai listens with (ADR-0006), and it has to be built rather than
+# downloaded because no ready-made ggml Thonburian exists. Run it once, unless
+# you never speak Thai to T.O.E.Z.
 #
-# For the models T.O.E.Z. actually listens with, run
-# scripts/fetch-ears-models.sh — no build, no Python.
+# Every other language listens with large-v3-turbo, which
+# scripts/fetch-ears-models.sh downloads — no build, no Python. Run that one too.
+#
+# The built file is named after the model it came from, so several can sit side
+# by side in ~/.toez/models for `TOEZ_MODEL` to choose between.
 #
 # Everything lands in ~/.toez/models, which is the Workspace, so it survives
 # reinstalling the app. Takes a while and wants ~10GB of scratch space: the
@@ -113,4 +114,4 @@ rm -rf "$BUILD_DIR"
 
 printf '\nBuilt %s\n\n' "$BUILT"
 ls -lh "$MODELS_DIR"
-printf '\nTry it: TOEZ_MODEL=%s pnpm listen\n\n' "$BUILT"
+printf '\nThai now listens with this. `pnpm listen`\n\n'

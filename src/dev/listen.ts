@@ -47,6 +47,10 @@ const key = process.env.TOEZ_KEY ?? defaultPushToTalkKey
 // to keep them. Set it when a transcript comes back wrong: a bad microphone and
 // a misheard word look identical in text and quite different in the ear.
 const keepRecordingsIn = process.env.TOEZ_KEEP_AUDIO
+// Words to expect. Worth reaching for when English comes back close but wrong —
+// "commit the changes" as "come meet the same" is a decoder picking between
+// things that sounded alike, and naming the words tilts the pick.
+const prompt = process.env.TOEZ_PROMPT
 
 // A missing model otherwise surfaces as a whisper-cli failure three quarters of
 // the way through the Owner's first sentence.
@@ -77,6 +81,7 @@ const session = new SessionRuntime({
     vadModelPath: defaultVadModelPath,
     language,
     ...(keepRecordingsIn === undefined ? {} : { keepRecordingsIn }),
+    ...(prompt === undefined ? {} : { prompt }),
     // The microphone takes about half a second to open, so this — not the
     // keypress — is the moment the Owner can start talking.
     onListening: () => {
@@ -169,6 +174,7 @@ process.stdout.write(
     `Model    ${modelPath}\n` +
     `Language ${language}\n` +
     `Key      ${key}\n` +
+    (prompt === undefined ? '' : `Prompt   ${prompt}\n`) +
     (keepRecordingsIn === undefined ? '' : `Keeping  ${keepRecordingsIn}\n`) +
     `\n` +
     `Hold the key, speak, release. Ctrl-C to stop.\n` +

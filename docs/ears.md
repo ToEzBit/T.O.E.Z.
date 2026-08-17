@@ -72,10 +72,23 @@ language out for itself, and the language decides which model hears it.
 | `TOEZ_LANGUAGE`   | `th`                 | An English session (`en`), or guessing (`auto`) |
 | `TOEZ_MODEL`      | whichever fits above | Forcing one model regardless of language        |
 | `TOEZ_KEY`        | `MetaRight`          | Holding a different key                         |
+| `TOEZ_PROMPT`     | none                 | Naming words to expect, when English lands close but wrong |
 | `TOEZ_KEEP_AUDIO` | off — nothing kept   | Keeping recordings in a directory, to listen to |
 
 The microphone is whatever macOS calls default, always. Pick it in Sound
 settings; T.O.E.Z. follows.
+
+`TOEZ_PROMPT` is decoded as though it were the sentence before, so the words in
+it become likelier in what follows. It is the lever for speech Whisper finds
+hard — a non-native accent, or vocabulary it has no reason to expect:
+
+```sh
+TOEZ_LANGUAGE=en TOEZ_PROMPT='Talking about code: terminal, pnpm, git, commit, branch, deploy.' pnpm listen
+```
+
+"commit the changes" heard as "come meet the same" is a decoder choosing
+between candidates that sounded alike, and naming the words tilts the choice.
+It cannot help with a sound that never arrived.
 
 `TOEZ_KEEP_AUDIO=/tmp/toez-audio` is how a wrong transcript gets settled: a bad
 microphone and a misheard word are identical on screen and obvious in the ear.

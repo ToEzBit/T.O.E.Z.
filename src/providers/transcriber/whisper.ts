@@ -25,6 +25,17 @@ export interface Heard {
   readonly text: string
   /** The language Whisper decided it was in, as an ISO 639-1 code. */
   readonly language: string
+  /**
+   * Words to expect, given to Whisper before it starts. Not instructions — it
+   * is decoded as though it were the sentence before, so the words in it become
+   * likelier in what follows.
+   *
+   * This is the lever for speech Whisper finds hard: a non-native accent, or
+   * vocabulary it has no reason to expect. "commit the changes" heard as "come
+   * meet the same" is a decoder choosing between candidates that sounded alike,
+   * and a prompt naming the words tilts that choice.
+   */
+  readonly prompt?: string
 }
 
 export interface WhisperOptions {
@@ -48,17 +59,30 @@ export interface WhisperOptions {
    * about it (ADR-0005).
    */
   readonly language: string
+  /**
+   * Words to expect, given to Whisper before it starts. Not instructions — it
+   * is decoded as though it were the sentence before, so the words in it become
+   * likelier in what follows.
+   *
+   * This is the lever for speech Whisper finds hard: a non-native accent, or
+   * vocabulary it has no reason to expect. "commit the changes" heard as "come
+   * meet the same" is a decoder choosing between candidates that sounded alike,
+   * and a prompt naming the words tilts that choice.
+   */
+  readonly prompt?: string
 }
 
 export class Whisper {
   readonly #modelPath: string
   readonly #vadModelPath: string
   readonly #language: string
+  readonly #prompt: string | undefined
 
   constructor(options: WhisperOptions) {
     this.#modelPath = options.modelPath
     this.#vadModelPath = options.vadModelPath
     this.#language = options.language
+    this.#prompt = options.prompt
   }
 
   /**
@@ -74,6 +98,7 @@ export class Whisper {
       '-l', this.#language,
       '--vad',
       '-vm', this.#vadModelPath,
+      ...(this.#prompt === undefined ? [] : ['--prompt', this.#prompt]),
       '-nt',
       '-np',
       '-oj',

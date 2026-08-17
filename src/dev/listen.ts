@@ -79,11 +79,20 @@ const session = new SessionRuntime({
       listeningAt = performance.now()
       process.stdout.write('   🎙  ฟังอยู่ครับ\n')
     },
-    // The language on every line, so that a run is evidence. With a language
-    // chosen it only confirms what was asked for; under `auto` it is the whole
+    // A turn that caught no speech says so. It is otherwise indistinguishable
+    // from a turn that went wrong, and it reports whatever language Whisper
+    // fell back to — `en` on a recording with nothing in it, which reads as a
+    // bug when the Owner asked for Thai.
+    //
+    // The language on the other lines is what makes a run evidence: with one
+    // chosen it confirms what was asked for, and under `auto` it is the whole
     // story, because guessing wrong is what makes Thai come back as Korean.
     onHeard: (heard) =>
-      process.stdout.write(`   [${heard.language} · ถอดความ ${since(releasedAt)}]\n`),
+      process.stdout.write(
+        heard.text === ''
+          ? `   [ไม่ได้ยินเสียงพูด · ${since(releasedAt)}]\n`
+          : `   [${heard.language} · ถอดความ ${since(releasedAt)}]\n`,
+      ),
   }),
   voice: new MuteVoice(),
 })

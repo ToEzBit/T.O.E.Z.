@@ -93,6 +93,11 @@ export class MinimaxSocket {
           sample_rate: SAMPLE_RATE,
           format: 'pcm',
           channel: 1,
+          // Meaningless for raw samples, which have exactly one bitrate, and
+          // sent anyway: MiniMax's own example sends it and their reference
+          // does not mark it optional, so leaving it out is a way to be
+          // refused for no benefit.
+          bitrate: 128_000,
         },
         // Not a language, on purpose. One Voice speaks Thai and English in the
         // same sentence — "ไปแก้ bug ในโปรเจค X" is how the Owner talks and so
@@ -239,6 +244,7 @@ type Request =
         readonly sample_rate: number
         readonly format: string
         readonly channel: number
+        readonly bitrate: number
       }
       readonly language_boost: string
     }

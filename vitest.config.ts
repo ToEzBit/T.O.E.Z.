@@ -7,10 +7,11 @@ import { defineConfig } from 'vitest/config'
 //                 checks that need neither — the Workspace against a temp
 //                 directory, and ADR-0002's promise that no API key is anywhere
 //                 in this repository. No network, no binaries, nothing mocked.
-//   integration — provider contract tests (the Agent SDK Engine now; MiniMax,
-//                 `say` and whisper later). These need network, a Claude login,
-//                 or local models, so they are excluded from the default run
-//                 and exercised on their own.
+//   integration — provider contract tests: the Agent SDK Engine, whisper.cpp
+//                 and MiniMax now; Apple's `say` when T11 adds it. These need
+//                 network, a Claude login, a MiniMax key or local models, so
+//                 they are excluded from the default run and exercised on
+//                 their own.
 export default defineConfig({
   test: {
     projects: [

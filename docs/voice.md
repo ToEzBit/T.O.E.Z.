@@ -90,10 +90,12 @@ the voice can put a small pause it did not mean. Smaller starts sooner.
 ## What to expect
 
 **The number that matters is the first one.** `pnpm say` prints, for every
-phrase, how long MiniMax took to send back the first audio of it (`รอ`) and how
-much speech it turned into (`เสียง`), and at the end how long it was before the
-first word was said at all. Everything after the first phrase is time the Owner
-is already listening through; only the first is silence they are waiting in.
+phrase, how long it was between wanting that phrase said and the first audio of
+it arriving (`รอ`) and how much speech it turned into (`เสียง`), and at the end
+how long it was before the first word was said at all. On the first phrase of a
+Session `รอ` includes opening the connection, which is honest: it is silence the
+Owner sits in either way. Everything after the first phrase is time they are
+already listening through.
 
 MiniMax promises the first audio inside a quarter of a second. Add a round trip
 to Singapore, and the connection being opened on the first phrase of a Session.

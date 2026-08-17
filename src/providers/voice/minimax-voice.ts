@@ -104,11 +104,19 @@ export class MinimaxVoice implements VoiceProvider {
     await this.#speaker.close()
   }
 
+  /**
+   * The connection to speak the next phrase through, reusing the last one when
+   * it is still good. MiniMax hangs up on one left quiet for two minutes, which
+   * between one turn and the next is entirely normal, so a fresh one is opened
+   * whenever the old one has gone.
+   *
+   * If MiniMax ever stops taking a second phrase on one connection — the
+   * `voice.integration.test.ts` case that watches for it — the fix is here:
+   * drop the socket after every phrase and pay a handshake each time.
+   */
   async #connection(): Promise<MinimaxSocket> {
     const open = this.#socket
     if (open?.usable === true) return open
-    // MiniMax hangs up on a connection left quiet for two minutes, which
-    // between one turn and the next is entirely normal.
     this.#socket = await MinimaxSocket.open(this.#minimax)
     return this.#socket
   }

@@ -158,3 +158,25 @@ detection Whisper would invent a word — asked to transcribe silence, it answer
 `pnpm test:integration` puts macOS's own voices through the real whisper.cpp,
 which holds the wiring honest. Synthetic speech is far easier to hear than a
 person, and it says nothing about how a Thai speaker's English lands.
+
+## English is not good enough yet
+
+Measured on the Owner's voice: **Thai is exact, English is not.**
+
+| | |
+| --- | --- |
+| หนึ่ง สอง สาม สี่ ห้า | exact |
+| เปิดโปรเจกต์ให้หน่อยครับ | exact |
+| ขอบคุณมากครับ | exact |
+| Show me the test results for this branch | *show me the daily self for this plan* |
+| Fix the failing tests and commit the changes | *falling tight and come meet the same* |
+| What's the weather like this afternoon? | *what the waiter like this afternoon* |
+
+Three things stack up, and only the third is anyone's fault: the Owner is not a
+native English speaker, `/ð/` and `/tʃ/` do not exist in Thai and live in the
+treble band a Bluetooth headset discards, and Whisper is trained mostly on
+native speech.
+
+Known and accepted for now, because Thai is the language T.O.E.Z. is spoken to
+in. `TOEZ_PROMPT` is the first thing to try. Tracked separately — do not treat
+it as a regression when English comes back wrong.

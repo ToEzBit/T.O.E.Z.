@@ -66,7 +66,7 @@ describe('the Session orchestrator', () => {
     })
   })
 
-  it('speaks the first sentence while the rest of the reply is still arriving', async () => {
+  it('speaks the first phrase while the rest of the reply is still arriving', async () => {
     // The whole of T4: the Owner hears the answer beginning before the Engine
     // has finished writing it. Without this the wait is transcription plus the
     // whole reply plus synthesis, and a conversation cannot be had at that
@@ -139,6 +139,40 @@ describe('the Session orchestrator', () => {
     expect(effects.findIndex((effect) => effect.type === 'speak')).toBeLessThan(
       effects.findLastIndex((effect) => effect.type === 'show-reply-chunk'),
     )
+  })
+
+  it('waits rather than cut a Thai word in half, when there is no space to cut at', async () => {
+    // The accepted cost of breaking at spaces. Thai written without them has
+    // nothing to break at, and half a Thai word is not a shorter word — it is a
+    // different one, mispronounced. So a run like this is spoken in one piece
+    // at the end, exactly as if none of this existed, and the Owner waits.
+    //
+    // Here so that it is a known price rather than a surprise: if replies come
+    // back like this in practice, this is the test that has to change first.
+    const engine = new ScriptedEngine([
+      [
+        'ตอนนี้เก้าโมงเช้าแล้วครับเจ้านายอากาศข้างนอกก',
+        'ำลังดีมากเลยเหมาะกับการออกไปเดินเล่นสูดอากาศให้สบายใจ',
+      ],
+    ])
+    const transcriber = new CannedTranscriber(['ตอนนี้กี่โมง'])
+    const voice = new RecordingVoice()
+    const session = new SessionRuntime({ engine, transcriber, voice })
+
+    const effects = recordEffects(session)
+
+    await session.dispatch({ type: 'hotkey-pressed' })
+    await session.dispatch({ type: 'hotkey-released' })
+
+    expect(voice.spoken).toEqual([
+      {
+        text:
+          'ตอนนี้เก้าโมงเช้าแล้วครับเจ้านายอากาศข้างนอกก' +
+          'ำลังดีมากเลยเหมาะกับการออกไปเดินเล่นสูดอากาศให้สบายใจ',
+      },
+    ])
+    // Nothing was said until the reply was whole, which is the price.
+    expect(effects.at(-1)?.type).toBe('speak')
   })
 
   it('does not mistake the point in a number for the end of a sentence', async () => {

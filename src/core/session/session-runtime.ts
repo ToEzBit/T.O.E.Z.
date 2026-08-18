@@ -100,6 +100,18 @@ export class SessionRuntime {
       }
 
       case 'speak':
+        // Awaited, and that has a consequence worth knowing: a `speak` raised
+        // while the Engine is still writing holds up the loop above, so the
+        // next phrase is not found — and not sent to be synthesised — until
+        // this one has finished being heard. Every phrase after the first
+        // therefore begins with however long the Voice takes to answer.
+        //
+        // Left this way deliberately for now. The alternative is a Voice that
+        // is queued rather than awaited, which is a change to the port and to
+        // what `speech-finished` means; whether it is worth making is a
+        // question for the Owner's ear on `pnpm say`, which prints exactly
+        // that wait. It also throttles `show-reply-chunk` to speaking speed,
+        // which the Panel will care about (T6) and nothing does yet.
         await this.#ports.voice.speak(effect.request)
         await this.#step({ type: 'speech-finished' })
         return

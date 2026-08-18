@@ -8,6 +8,7 @@
   "scripts": {
     "ask": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/dev/ask.ts",
     "listen": "NODE_OPTIONS=--disable-warning=MODULE_TYPELESS_PACKAGE_JSON electron src/dev/listen.ts",
+    "say": "node --env-file-if-exists=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/dev/say.ts",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",

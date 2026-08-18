@@ -12,10 +12,9 @@ import type { Utterance } from '../utterance.ts'
  * Later tickets widen this union — permission prompts, Memory writes,
  * Transcript appends, Panel updates, Subagent announcements all arrive here.
  *
- * Two widenings are already known to be coming, and are deliberately absent
- * until a ticket asks for them: T4 speaks sentence by sentence as the reply
- * streams, rather than once at the end as `speak` does here; and T5 needs a
- * way to cut speech off mid-sentence when the Owner keys in over it.
+ * One widening is already known to be coming and is deliberately absent until a
+ * ticket asks for it: T5 needs a way to cut speech off mid-phrase when the
+ * Owner keys in over it.
  */
 export type SessionEffect =
   /** Open the microphone; the Owner is holding the key. */
@@ -37,5 +36,10 @@ export type SessionEffect =
    * until then the effect log is the only place a reply is watched.
    */
   | { readonly type: 'show-reply-chunk'; readonly chunk: ReplyChunk }
-  /** Say this aloud. */
+  /**
+   * Say this aloud. One phrase of the reply rather than the whole of it: they
+   * are handed over as the reply is written, so that the Owner hears it
+   * beginning rather than waiting for it to end. Which words make a phrase is
+   * `phrases.ts`.
+   */
   | { readonly type: 'speak'; readonly request: SpeakRequest }

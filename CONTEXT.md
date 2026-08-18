@@ -55,3 +55,7 @@ _Avoid_: log, chat history
 **Utterance**:
 One thing the Owner said in a single push-to-talk turn, as text — what the Transcriber hands back when the key is released. A Session is made of many; a Transcript records them all.
 _Avoid_: transcript (that is the whole Session's record), input, prompt, query
+
+**Phrase**:
+As much of a reply as T.O.E.Z. can say on its own, handed to the Voice while the rest is still being written. Often a sentence; in Thai, which ends sentences with a space rather than a full stop, whatever lies between two of them.
+_Avoid_: sentence (Thai replies have none to find), chunk (that is one piece of the Engine's stream), segment
